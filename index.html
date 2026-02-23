@@ -135,6 +135,7 @@
         .btn-green { background: #059669; color: white; }
         .btn-red { background: #ef4444; color: white; }
         .btn-yellow { background: #f59e0b; color: white; }
+        .btn-blue { background: #3b82f6; color: white; }
         .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text); }
         .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
@@ -200,7 +201,7 @@
 
         .notes-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .notes-checkbox { width: 18px; height: 18px; cursor: pointer; margin: 0; }
-        .notes-label { cursor: pointer; font-size: 1.2em; color: var(--primary); margin:0; }
+        .notes-label { cursor: pointer; font-size: 1.2em; color: var(--primary); margin:0; font-weight: bold;}
 
         /* CHIPS */
         .template-area { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
@@ -237,12 +238,12 @@
             
             /* Print Header - Flawless A5 Scaling & Alignment */
             .print-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; align-items: flex-start; flex-wrap: nowrap;}
-            .dr-info { min-width: 40%; }
+            .dr-info { min-width: 40%; margin-top: 0; }
             .dr-info h1 { color: #b91c1c !important; font-size: 16px !important; margin: 0; font-weight: 900; text-transform: uppercase; display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
             .dr-info .print-degree { font-size: 12px; color: #000; font-weight: 700; }
             .dr-info p { margin: 2px 0; font-size: 11px; font-weight: bold; color: #000; line-height: 1.2;}
             
-            .clinic-info-container { display: flex; align-items: flex-start; gap: 8px; text-align: right; justify-content: flex-end; min-width: 50%; }
+            .clinic-info-container { display: flex; align-items: flex-start; gap: 8px; text-align: right; justify-content: flex-end; min-width: 50%; margin-top: 0; }
             .clinic-logo-img { height: 45px; width: auto; }
             .clinic-info { display: flex; flex-direction: column; align-items: flex-end; }
             .clinic-name { color: #1e3a8a !important; font-size: 14px !important; font-weight: 900; text-transform: uppercase; border: 2px solid #1e3a8a; padding: 2px 4px; display: inline-block; white-space: nowrap; margin-bottom: 2px;}
@@ -268,10 +269,11 @@
             .print-footer { margin-top: 40px; text-align: right; padding-bottom: 20px; }
             .signature-line { border-top: 1px solid #000; padding-top: 5px; font-weight: bold; display: inline-block; width: 200px; text-align: center;}
             
-            .print-section-box { border: 1px solid #000; padding: 5px 10px; margin-bottom: 6px; font-size: 14px; font-family: 'Inter', sans-serif; display: flex; align-items: baseline; gap: 10px; min-height: 25px;}
-            .print-section-title { font-weight: bold; min-width: 120px; text-decoration: underline;}
+            /* Bigger Fonts for Notes, Prov Diag, and Exam (18px) */
+            .print-section-box { border: 1px solid #000; padding: 5px 10px; margin-bottom: 6px; font-size: 18px; font-family: 'Inter', sans-serif; display: flex; align-items: baseline; gap: 10px; min-height: 25px;}
+            .print-section-title { font-weight: bold; min-width: 150px; text-decoration: underline;}
             .print-section-content { font-weight: 600; flex-grow: 1; white-space: pre-wrap; }
-            .print-details-box { border: 1px solid #000; padding: 8px; height: auto; min-height: 0; margin-bottom: 15px; font-size: 14px; white-space: pre-wrap; font-family: 'Inter', sans-serif; display: none; width: 100%; }
+            .print-details-box { border: 1px solid #000; padding: 10px; height: auto; min-height: 0; margin-bottom: 15px; font-size: 18px; white-space: pre-wrap; font-family: 'Inter', sans-serif; display: none; width: 100%; line-height: 1.4;}
         }
         .print-only { display: none; }
         
@@ -310,6 +312,27 @@
                     <input type="text" id="manualDurationInput" class="form-control" placeholder="Type here..." onkeydown="if(event.key==='Enter') saveManualDuration()">
                 </div>
                 <button class="btn btn-primary" style="width:100%" onclick="saveManualDuration()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editPatientModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h4 class="modal-title">Edit Patient Details</h4>
+                <button class="btn btn-red btn-sm" onclick="closeModal('editPatientModal')">X</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editPatId">
+                <div class="form-group"><label>Patient Name</label><input type="text" id="editPatName"></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Age</label><input type="number" id="editPatAge"></div>
+                    <div class="form-group"><label>Sex</label><select id="editPatSex"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                </div>
+                <div class="form-group"><label>Phone Number</label><input type="tel" id="editPatPhone"></div>
+                <div class="form-group"><label>Address</label><input type="text" id="editPatAddress"></div>
+                <div class="form-group"><label>Provisional Diagnosis</label><textarea id="editPatDiagnosis" rows="2" class="auto-expand"></textarea></div>
+                <button class="btn btn-success" style="width:100%" onclick="savePatientEdit()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -531,39 +554,34 @@
                             <div id="historySection" style="display:none; background:#f0f9ff; padding:15px; border-radius:8px; margin-bottom:20px;"><h4>Previous Visits</h4><div id="historyContent">Loading history...</div></div>
 
                             <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <h5 style="margin-top:0; margin-bottom:10px; color:var(--primary);">Patient Personal Documents</h5>
-                                <div class="mic-wrapper">
-                                    <textarea id="personalDocs" class="form-control auto-expand" rows="2" placeholder="Type or use mic..."></textarea>
-                                    <button id="mic-personalDocs" class="mic-btn" onmousedown="handleManualMicClick(event, 'personalDocs')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-                                </div>
-                            </div>
-
-                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <h5 style="margin-top:0; margin-bottom:10px; color:var(--primary);">Provisional Diagnosis</h5>
-                                <div class="mic-wrapper">
-                                    <textarea id="provDiagnosis" class="form-control auto-expand" rows="2" placeholder="Type or use mic..."></textarea>
-                                    <button id="mic-provDiagnosis" class="mic-btn" onmousedown="handleManualMicClick(event, 'provDiagnosis')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-                                </div>
-                            </div>
-
-                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                                     <div class="notes-header">
                                         <input type="checkbox" id="includeNotesInPrint" class="notes-checkbox" title="Check to print on Rx" checked>
-                                        <label for="includeNotesInPrint" class="notes-label">Case Details / Notes (Check to print)</label>
+                                        <label for="includeNotesInPrint" class="notes-label">Patient Personal Documents</label>
                                     </div>
                                     <div class="template-area" id="templateChipContainer"><span class="template-add-btn" onclick="openTemplateManager()">+ Manage Templates</span></div>
                                 </div>
                                 <div class="mic-wrapper">
-                                    <textarea id="docDetails" class="form-control auto-expand" rows="4" placeholder="Type or use templates..."></textarea>
+                                    <textarea id="docDetails" class="form-control auto-expand" rows="10" placeholder="Type or use templates..."></textarea>
                                     <button id="mic-docDetails" class="mic-btn" onmousedown="handleManualMicClick(event, 'docDetails')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <div style="display:flex; align-items:center; margin-bottom:10px; gap: 10px;">
+                                    <input type="checkbox" id="includeProvDiagInPrint" class="notes-checkbox" title="Check to print Prov Diag" checked>
+                                    <label for="includeProvDiagInPrint" class="notes-label">Provisional Diagnosis</label>
+                                </div>
+                                <div class="mic-wrapper">
+                                    <textarea id="provDiagnosis" class="form-control auto-expand" rows="10" placeholder="Type or use mic..."></textarea>
+                                    <button id="mic-provDiagnosis" class="mic-btn" onmousedown="handleManualMicClick(event, 'provDiagnosis')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
                             </div>
 
                             <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <div style="display:flex; align-items:center; margin-bottom:15px; gap: 10px;">
                                     <input type="checkbox" id="includeExamInPrint" class="notes-checkbox" title="Check to print Exam" checked>
-                                    <label for="includeExamInPrint" class="notes-label" style="font-size:1.2em; color:var(--primary); margin:0;">On Examination</label>
+                                    <label for="includeExamInPrint" class="notes-label">On Examination</label>
                                 </div>
                                 
                                 <div class="lab-grid-row1">
@@ -649,8 +667,9 @@
                 <div id="printDateAll"></div>
             </div>
 
+            <div id="printProvDiagBody" class="print-details-box"></div>
+            <div id="printNotesBody" class="print-details-box"></div>
             <div id="printExamBody"></div>
-            <div id="printNotesBody" class="print-details-box" style="margin-top:10px;"></div>
 
             <div id="printPrescriptionWrapper">
                 <div class="rx-badge" id="prescriptionBadge"><span>PRESCRIPTION</span></div>
@@ -890,7 +909,7 @@
                 renderTemplateChips(); renderTemplateManagerList();
             });
             
-            ['docDetails', 'personalDocs', 'provDiagnosis', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
+            ['provDiagnosis', 'docDetails', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
             
             document.querySelectorAll('.auto-expand').forEach(el => {
                 el.addEventListener('input', function() {
@@ -965,7 +984,7 @@
 
                 const el = document.getElementById(activeInputId);
                 
-                if (['docDetails', 'personalDocs', 'provDiagnosis', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(activeInputId)) {
+                if (['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(activeInputId)) {
                     let tBefore = sessionStartText.substring(0, sessionCursorPos);
                     let tAfter = sessionStartText.substring(sessionCursorPos);
                     el.value = tBefore + sessionSpace + currentWebkitText + tAfter;
@@ -997,7 +1016,7 @@
             activeInputId = id; 
             const el = document.getElementById(id);
             
-            if(!['docDetails', 'personalDocs', 'provDiagnosis', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) { 
+            if(!['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) { 
                 el.value=''; 
             }
             
@@ -1092,22 +1111,29 @@
         function attachMicListeners(id) {
             const el = document.getElementById(id); if(!el)return;
             
-            if (['docDetails', 'personalDocs', 'provDiagnosis', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) {
-                el.addEventListener('focus', (e) => { if(isAutoMicOn) startListening(id); });
-                el.addEventListener('keyup', (e) => {
-                    if (activeInputId === id && recognition && e.key.length === 1) { stopListening(); }
-                });
-                el.addEventListener('mouseup', () => {
-                    if (activeInputId === id && recognition) { stopListening(); }
-                });
-            } else {
-                el.addEventListener('focus', () => { el.select(); if(isAutoMicOn) startListening(id); });
-            }
+            el.addEventListener('focus', (e) => { 
+                if(isAutoMicOn) startListening(id); 
+                else if (!['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) el.select();
+            });
+            
+            el.addEventListener('mouseup', () => {
+                if (activeInputId === id) { 
+                    sessionStartText = el.value;
+                    sessionCursorPos = el.selectionStart;
+                    if(mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+                }
+            });
+            el.addEventListener('keyup', () => {
+                if (activeInputId === id) { 
+                    sessionStartText = el.value;
+                    sessionCursorPos = el.selectionStart;
+                }
+            });
+
             el.addEventListener('blur', (e) => { setTimeout(() => { if(document.activeElement!==el) stopListening(); }, 200); });
         }
 
 
-        // --- CUSTOM DROPDOWN LOGIC ---
         window.showMedicineList = (rid) => {
             const dropdown = document.getElementById(`med-dropdown-${rid}`);
             dropdown.style.display = 'block';
@@ -1305,6 +1331,43 @@
             }
         }
 
+        // --- NEW EDIT PATIENT LOGIC ---
+        window.openEditPatientModal = (id) => {
+            const p = allPatients.find(x => x.id === id);
+            if(!p) return;
+            document.getElementById('editPatId').value = p.id;
+            document.getElementById('editPatName').value = p.name || '';
+            document.getElementById('editPatAge').value = p.age || '';
+            document.getElementById('editPatSex').value = p.sex || '';
+            document.getElementById('editPatPhone').value = p.phone || '';
+            document.getElementById('editPatAddress').value = p.address || '';
+            document.getElementById('editPatDiagnosis').value = p.diagnosis || '';
+            document.getElementById('editPatientModal').style.display = 'flex';
+        };
+
+        window.savePatientEdit = async () => {
+            const id = document.getElementById('editPatId').value;
+            const name = document.getElementById('editPatName').value;
+            const age = document.getElementById('editPatAge').value;
+            const sex = document.getElementById('editPatSex').value;
+            const phone = document.getElementById('editPatPhone').value;
+            const address = document.getElementById('editPatAddress').value;
+            const diagnosis = document.getElementById('editPatDiagnosis').value;
+
+            if(!name || !age || !sex) return showToast("Name, Age, and Sex are required", "error");
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                await updateDoc(doc(db, "patients", id), { name, age, sex, phone, address, diagnosis });
+                closeModal('editPatientModal');
+                showToast("Patient Updated!", "success");
+            } catch(e) {
+                console.error(e);
+                showToast("Error updating patient", "error");
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
+        };
+
         async function registerPatient() {
             const btn = document.getElementById('btnRegister'); btn.disabled = true;
             const counterRef = doc(db, "counters", "patients");
@@ -1343,6 +1406,7 @@
                     <div class="patient-list-header">
                         <div><strong>${p.name}</strong> <small>(#${p.regNo || '?'} | ${p.age}Y/${p.sex})</small></div>
                         <div style="display:flex; gap:5px;">
+                            <button class="btn btn-blue btn-sm" onclick="event.stopPropagation(); openEditPatientModal('${p.id}')">Edit</button>
                             <button class="btn btn-yellow btn-sm" onclick="event.stopPropagation(); sendToDoctor('${p.id}')">Send to Doctor</button>
                             <button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deletePatient('${p.id}', ${p.regNo})">Delete</button>
                         </div>
@@ -1401,9 +1465,7 @@
             renderDoctorQueue(); 
             document.getElementById('drugListContainer').innerHTML = ''; 
             
-            // Auto populate provisional diagnosis from reception desk
             document.getElementById('provDiagnosis').value = p.diagnosis || '';
-            document.getElementById('personalDocs').value = '';
             document.getElementById('docDetails').value = ''; 
             
             document.getElementById('customExamFields').innerHTML = ''; 
@@ -1418,14 +1480,13 @@
             if(!currentPatient) return;
             const btn = document.getElementById('btnPrint');
             
-            const personalDocs = document.getElementById('personalDocs').value;
             const provDiagnosis = document.getElementById('provDiagnosis').value;
             const notes = document.getElementById('docDetails').value;
             const printNotes = document.getElementById('includeNotesInPrint').checked;
+            const includeProvDiag = document.getElementById('includeProvDiagInPrint').checked;
             
             document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
             
-            // Validate Compulsory Fields
             const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
             const labs = {
                 bp: document.getElementById('examBP').value, pulse: document.getElementById('examPulse').value,
@@ -1479,7 +1540,6 @@
                 
                 drugs.push({ name, strength: str, type, m, a, n, t: total });
 
-                // ** AUTO-SAVE NEW MEDICINE / STRENGTH **
                 const existingMed = cloudMedicines.find(m => m.name.toLowerCase() === name.toLowerCase());
                 if(!existingMed) {
                     await addDoc(collection(db, "medicines"), { name: name, strengths: str?[str]:[] });
@@ -1490,33 +1550,36 @@
 
             if(!isValid) return; 
 
-            // Allow blank printing if literally nothing is filled (requested by user)
-            // Just removing the validation block that stops blank prints
-
             btn.disabled = true;
             try {
-                const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, personalDocs, provDiagnosis, labs };
-                await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis }); // update main dx too
+                const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, provDiagnosis, labs };
+                await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis });
                 
                 const hasExamDataInternal = hasExamData(labs);
                 const hasMeds = drugs.length > 0;
 
-                // --- ALWAYS PRINT META DATA ---
                 document.getElementById('printNameAll').innerText = "Name: " + currentPatient.name;
                 document.getElementById('printRegAll').innerText = "Reg No: " + (currentPatient.regNo || '-');
                 document.getElementById('printAgeSexAll').innerText = `Age/Sex: ${currentPatient.age} / ${currentPatient.sex}`;
                 document.getElementById('printDateAll').innerText = "Date: " + record.date;
                 
-                // Details + Exam Section
+                const provDiagBody = document.getElementById('printProvDiagBody');
+                if (includeProvDiag && provDiagnosis.trim()) {
+                    provDiagBody.innerHTML = "<strong>Provisional Diagnosis:</strong><br>" + provDiagnosis.replace(/\n/g, '<br>');
+                    provDiagBody.style.display = 'block';
+                } else {
+                    provDiagBody.style.display = 'none';
+                }
+
+                const pNotes = document.getElementById('printNotesBody');
+                if(printNotes && notes.trim()) { 
+                    pNotes.innerHTML = "<strong>Patient Personal Documents:</strong><br>" + notes.replace(/\n/g, '<br>'); 
+                    pNotes.style.display = 'block'; 
+                } else { 
+                    pNotes.style.display = 'none'; 
+                }
+                
                 let examHtml = "";
-                
-                if (personalDocs.trim()) {
-                    examHtml += `<div class="print-section-box"><div class="print-section-title">Personal Docs:</div><div class="print-section-content">${personalDocs}</div></div>`;
-                }
-                if (provDiagnosis.trim()) {
-                    examHtml += `<div class="print-section-box"><div class="print-section-title">Prov. Diagnosis:</div><div class="print-section-content">${provDiagnosis}</div></div>`;
-                }
-                
                 if(includeExam && hasExamDataInternal) {
                     if(labs.bp || labs.pulse) examHtml += `<div class="print-section-box"><div class="print-section-title">On Examination:</div><div class="print-section-content">BP: ${labs.bp||'-'} &nbsp;&nbsp; Pulse: ${labs.pulse||'-'}</div></div>`;
                     if(labs.hb || labs.rbs || labs.cr) examHtml += `<div class="print-section-box"><div class="print-section-title">Blood Test:</div><div class="print-section-content">HB: ${labs.hb||'-'} &nbsp;&nbsp; RBS: ${labs.rbs||'-'} &nbsp;&nbsp; Cr: ${labs.cr||'-'}</div></div>`;
@@ -1533,16 +1596,7 @@
                         });
                     }
                 }
-                
                 document.getElementById('printExamBody').innerHTML = examHtml;
-
-                const pNotes = document.getElementById('printNotesBody');
-                if(printNotes && notes.trim()) { 
-                    pNotes.innerHTML = "<strong>Case Details:</strong><br>" + notes.replace(/\n/g, '<br>'); 
-                    pNotes.style.display = 'block'; 
-                } else { 
-                    pNotes.style.display = 'none'; 
-                }
 
                 const rxWrapper = document.getElementById('printPrescriptionWrapper');
                 if(hasMeds) {
