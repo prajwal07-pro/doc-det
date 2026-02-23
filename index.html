@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neuro Specialities - Cloud System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <script src="medicines.js"></script>
+
+    <style id="dynamicSettingsStyle"></style>
 
     <style>
         :root {
@@ -15,9 +17,10 @@
             --dr-red: #b91c1c;
             --text: #1f2937;
             --bg: #f3f4f6;
-            --border: #e5e7eb;
+            --border: #9ca3af;
             --success: #059669;
             --error: #ef4444;
+            --base-font-size: 14px;
         }
 
         * { box-sizing: border-box; }
@@ -26,10 +29,14 @@
             background: var(--bg); 
             color: var(--text); 
             margin: 0; 
-            padding: 20px; 
+            padding: 20px;
+            font-size: var(--base-font-size);
         }
 
-        .container { max-width: 1500px; margin: 0 auto; }
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        /* --- FORCE BOLD TEXT --- */
+        strong, b, label, input, textarea, select, .btn, h1, h2, h3, h4, h5, .patient-list-item { font-weight: 700 !important; }
 
         /* --- TOAST NOTIFICATION --- */
         #toast {
@@ -46,221 +53,144 @@
             bottom: 40px;
             transform: translateX(-50%);
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             opacity: 0;
             transition: opacity 0.3s, bottom 0.3s;
         }
-
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
-
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
         #toast.success { background-color: var(--success); }
         #toast.error { background-color: var(--error); }
 
-        /* --- AUTH & LOADING SCREENS --- */
+        /* --- AUTH & LOADING --- */
         #authContainer, #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 9999; display: flex; justify-content: center; align-items: center;
         }
         #loadingOverlay { background: rgba(255,255,255,0.9); z-index: 10000; display: none; flex-direction: column; }
-        
         .auth-card {
             background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 420px;
             box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid var(--primary);
         }
         .auth-logo { height: 60px; margin-bottom: 15px; }
-        .auth-title { color: var(--primary); font-weight: 900; font-size: 24px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: -0.5px; }
-        .auth-subtitle { color: #6b7280; font-size: 14px; margin-bottom: 30px; }
-        
-        .spinner {
-            width: 50px; height: 50px; border: 5px solid #e5e7eb; border-top: 5px solid var(--primary);
-            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
-        }
+        .auth-title { color: var(--primary); font-size: 24px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: -0.5px; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #e5e7eb; border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* --- HEADER --- */
         .app-header {
-            background: white; padding: 20px 30px; border-radius: 12px;
+            background: white; padding: 15px 25px; border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex;
             justify-content: space-between; align-items: flex-start; margin-bottom: 25px;
-            border-bottom: 4px solid var(--primary);
+            border-bottom: 4px solid var(--primary); position: relative;
         }
-
-        .header-left h1 { 
-            color: var(--dr-red); font-size: 28px; margin: 0; font-weight: 900; 
-            text-transform: uppercase; letter-spacing: -0.5px;
-            display: flex; align-items: baseline; gap: 10px;
-        }
-        
-        .degree-text { color: #000; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0; }
-        .header-left p { margin: 2px 0; font-size: 13px; font-weight: 700; color: #000; }
-        .kmc-code { font-size: 14px; font-weight: 600; color: #444; margin-top: 5px !important; }
-
+        .header-left h1 { color: var(--dr-red); font-size: 1.8em; margin: 0; text-transform: uppercase; letter-spacing: -0.5px; display: flex; align-items: baseline; gap: 10px; }
+        .degree-text { color: #000; font-size: 0.5em; text-transform: uppercase; letter-spacing: 0; }
+        .header-left p { margin: 2px 0; font-size: 0.9em; color: #000; }
+        .kmc-code { font-size: 0.9em; color: #444; margin-top: 5px !important; }
         .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
-        .clinic-brand { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
-        .clinic-name { color: var(--primary); font-size: 22px; font-weight: 900; text-transform: uppercase; border: 2px solid var(--primary); padding: 4px 10px; display: inline-block; }
+        .clinic-brand { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+        .clinic-name { color: var(--primary); font-size: 1.4em; text-transform: uppercase; border: 2px solid var(--primary); padding: 4px 10px; display: inline-block; }
         .clinic-logo-header { height: 50px; width: auto; }
-
-        .nav-pills { display: flex; gap: 10px; background: var(--bg); padding: 5px; border-radius: 8px; align-self: flex-end; align-items: center; }
-        .nav-btn { border: none; background: transparent; padding: 8px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; color: #6b7280; transition: 0.2s; }
+        .nav-pills { display: flex; gap: 10px; background: var(--bg); padding: 5px; border-radius: 8px; align-self: flex-end; align-items: center; flex-wrap: wrap; justify-content: flex-end;}
+        .nav-btn { border: none; background: transparent; padding: 8px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; color: #6b7280; transition: 0.2s; font-size: 1em; }
         .nav-btn.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .nav-btn-icon { font-size: 18px; padding: 8px 15px; }
         .logout-btn { color: #ef4444 !important; border: 1px solid #ef4444 !important; margin-left: 10px; }
-        .logout-btn:hover { background: #fee2e2 !important; }
 
         /* --- LAYOUTS --- */
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
-        .grid-reception { display: grid; grid-template-columns: 2fr 1.5fr; gap: 20px; }
+        .grid-reception { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+        .grid-3-reception { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; } 
         
         /* DOCTOR LAYOUT (Sticky Sidebar) */
         .grid-doctor { 
             display: grid; 
-            grid-template-columns: 280px 1fr; 
+            grid-template-columns: 220px 1fr; 
             gap: 20px; 
             align-items: start; 
         }
-
         .patient-list-section { 
-            position: sticky;
-            top: 20px; 
-            height: calc(100vh - 40px); 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column;
+            position: sticky; top: 20px; height: calc(100vh - 40px); overflow-y: auto; 
+            display: flex; flex-direction: column; 
         }
 
-        .grid-3-top { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; } 
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
 
         .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; font-size: 12px; font-weight: 600; color: #4b5563; margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        .form-group label { display: block; font-size: 0.85em; color: #4b5563; margin-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px; font-size: 1em; color: #000; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
         
-        /* Auto-expandable textarea style */
-        textarea.auto-expand { 
-            resize: none; 
-            overflow-y: hidden; 
-            min-height: 40px; 
-        }
+        textarea.auto-expand { resize: none; overflow-y: hidden; min-height: 50px; }
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
 
-        .input-error { border: 2px solid #ef4444 !important; background-color: #fef2f2; }
-
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 1em; font-weight: bold; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-green { background: #059669; color: white; }
         .btn-red { background: #ef4444; color: white; }
-        .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text); }
         .btn-yellow { background: #f59e0b; color: white; }
+        .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text); }
         .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
         /* --- DRUG ROWS --- */
-        .drug-row { display: flex; gap: 15px; align-items: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
-        
-        .col-name { flex: 4; display: flex; flex-direction: column; gap: 5px; } 
+        .drug-row { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+        .col-name { flex: 4; display: flex; flex-direction: column; gap: 5px; position: relative; } 
         .col-weight { flex: 1.5; } 
-        .col-small { flex: 0.8; text-align: center; } 
+        .col-m, .col-a, .col-n { flex: 0.8; text-align: center; } 
         .col-days { flex: 2; } 
         .col-total { flex: 1; } 
         .col-action { flex: 0.4; text-align: right; padding-top: 28px; }
-        
-        .drug-row label { display: block; font-size: 11px; font-weight: 700; color: #4b5563; margin-bottom: 4px; }
+        .drug-row label { display: block; font-size: 0.75em; color: #374151; margin-bottom: 4px; }
 
         .form-check-group { display: flex; gap: 10px; margin-top: 2px; }
-        .form-check-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; cursor: pointer; font-weight: 600; }
+        .form-check-label { display: flex; align-items: center; gap: 4px; font-size: 0.8em; cursor: pointer; color: #000; }
         .form-check-label input { width: auto; margin: 0; }
 
         .dose-input-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .checkbox-label { font-size: 10px; color: #666; font-weight: bold; cursor: pointer; height: 20px; display: flex; align-items: center; }
+        .checkbox-label { font-size: 0.8em; cursor: pointer; height: 20px; display: flex; align-items: center; }
         
-        .duration-checks { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-        .dur-check-label { 
-            font-size: 11px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 4px; cursor: pointer;
-            background: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e5e7eb;
-        }
+        .duration-checks { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .dur-check-label { font-size: 0.8em; color: #000; display: flex; align-items: center; gap: 4px; cursor: pointer; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #9ca3af; }
         .dur-check-label input { margin: 0; width: auto; }
+        .add-med-btn-inline { font-size: 0.8em; color: #fff; background: var(--primary); padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 5px; display: inline-block; }
 
-        /* Add Medicine Button in Row */
-        .add-med-btn-inline {
-            font-size: 12px; color: #fff; background: var(--primary); padding: 4px 10px; 
-            border-radius: 4px; cursor: pointer; margin-top: 5px; display: inline-block; font-weight: 600;
+        /* CUSTOM DROPDOWN FOR MEDICINES */
+        .custom-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0; background: white;
+            border: 2px solid var(--primary); border-top: none; z-index: 2000;
+            max-height: 200px; overflow-y: auto; border-radius: 0 0 6px 6px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1); display: none;
         }
+        .custom-dropdown div {
+            padding: 10px 12px; cursor: pointer; font-size: 14px; font-weight: 700; border-bottom: 1px solid #eee;
+        }
+        .custom-dropdown div:hover { background-color: var(--primary-light); color: var(--primary); }
 
-        /* --- EXPANDABLE PATIENT LIST ITEM --- */
-        .patient-list-item { 
-            padding: 12px; 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            margin-bottom: 8px; 
-            cursor: pointer; 
-            background: #f9fafb; 
-            transition: all 0.2s ease;
-        }
-        /* No hover expansion by default */
-        .patient-list-item:hover { 
-            border-color: var(--primary); 
-            transform: translateX(2px);
-            background: white;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        
-        .patient-list-header {
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-        }
-
-        /* Hidden details that expand on CLICK */
-        .patient-details-expanded {
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-            transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
-            background: #eff6ff;
-            border-radius: 6px;
-            margin-top: 0;
-            padding: 0 10px;
-        }
-
-        /* Expanded State via JS Class */
-        .patient-list-item.expanded .patient-details-expanded {
-            max-height: 100px;
-            opacity: 1;
-            margin-top: 10px;
-            padding: 8px 10px;
-            border: 1px solid #bfdbfe;
-        }
-        
-        .patient-list-item.selected { background: var(--primary-light); border-color: var(--primary); border-left: 4px solid var(--primary); }
-        
-        .review-item { display: block; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
-
+        /* PATIENT LIST */
+        .patient-list-item { padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: #fff; transition: all 0.2s ease; }
+        .patient-list-item:hover { border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .patient-list-item.selected { background: var(--primary-light); border-color: var(--primary); border-left: 5px solid var(--primary); }
+        .patient-list-header { display: flex; justify-content: space-between; align-items: center; }
+        .patient-details-expanded { max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; background: #eff6ff; border-radius: 6px; margin-top: 0; padding: 0 10px; font-size: 0.9em; }
+        .patient-list-item.expanded .patient-details-expanded { max-height: 100px; opacity: 1; margin-top: 10px; padding: 10px; border: 1px solid #bfdbfe; }
         .med-list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
-        .med-list-item:hover { background: #f9fafb; }
 
         /* MIC STYLES */
         .mic-wrapper { position: relative; width: 100%; display: flex; align-items: center; }
-        .mic-wrapper input { width: 100%; padding-right: 30px; }
-        .mic-btn { 
-            position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
-            background: none; border: none; cursor: pointer; color: #9ca3af;
-            z-index: 10; padding: 0; display: flex; align-items: center;
-        }
-        .mic-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .mic-wrapper input, .mic-wrapper textarea { width: 100%; padding-right: 35px; }
+        .mic-btn { position: absolute; right: 8px; top: 10px; background: none; border: none; cursor: pointer; color: #9ca3af; z-index: 10; padding: 0; }
+        .mic-btn svg { width: 20px; height: 20px; fill: currentColor; }
         .mic-btn.listening { color: #ef4444; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         .auto-mic-container { display: flex; align-items: center; gap: 8px; background: #f3f4f6; padding: 5px 10px; border-radius: 20px; border: 1px solid #e5e7eb; }
-        .switch-label { font-size: 12px; font-weight: 700; color: #374151; }
+        .switch-label { font-size: 0.8em; }
         .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
@@ -270,104 +200,83 @@
 
         .notes-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .notes-checkbox { width: 18px; height: 18px; cursor: pointer; margin: 0; }
-        .notes-label { font-weight: 700; color: var(--text); font-size: 14px; cursor: pointer; }
+        .notes-label { cursor: pointer; font-size: 1.2em; color: var(--primary); margin:0; }
 
-        .add-med-link {
-            font-size: 12px; color: #d97706; cursor: pointer; margin-top: 4px; display: block; font-weight: 600;
-            background: #fffbeb; border: 1px solid #fcd34d; padding: 4px 8px; border-radius: 4px; text-align: center;
-        }
-
-        /* CLINICAL TEMPLATE CHIPS */
+        /* CHIPS */
         .template-area { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .template-chip { 
-            background: #e0f2fe; color: #0284c7; padding: 6px 12px; border-radius: 20px; 
-            font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #bae6fd; transition: 0.2s; 
-        }
+        .template-chip { background: #e0f2fe; color: #0284c7; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; cursor: pointer; border: 1px solid #bae6fd; transition: 0.2s; }
         .template-chip:hover { background: #0284c7; color: white; }
-        
-        .template-add-btn { 
-            background: white; border: 1px dashed #cbd5e1; color: #64748b; 
-            padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; 
-        }
+        .template-add-btn { background: white; border: 1px dashed #cbd5e1; color: #64748b; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; cursor: pointer; }
         .template-add-btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        /* LAB GRID */
+        /* LAB GRID - Bigger Inputs */
         .lab-grid-row1 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
         .lab-grid-row2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px; }
-        .lab-big-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: 'Inter', sans-serif; resize: none; overflow-y: hidden; min-height: 40px;}
-        .lab-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: 600; color: var(--primary); }
+        .lab-big-input { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 6px; font-size: 1em; resize: none; overflow-y: hidden; min-height: 45px;}
+        .lab-input { width: 100%; padding: 10px; padding-right: 35px; border: 2px solid var(--border); border-radius: 6px; font-size: 1em; text-align: left; color: var(--primary); }
 
         /* MODALS */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background-color: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-title { font-weight: 700; font-size: 18px; margin: 0; }
-        .modal-body { max-height: 400px; overflow-y: auto; }
+        .modal-title { font-size: 1.2em; margin: 0; }
+        .modal-body { max-height: 500px; overflow-y: auto; padding-right: 5px; }
         .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-        .selection-btn { 
-            padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; 
-            cursor: pointer; font-size: 13px; text-align: center; transition: 0.2s; font-weight: 500; color: #374151;
-        }
+        .selection-btn { padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 0.9em; text-align: center; transition: 0.2s; color: #374151; }
         .selection-btn:hover { border-color: var(--primary); background: #f0f9ff; color: var(--primary); }
+        
+        .custom-exam-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
 
-        /* PRINT STYLES */
+        /* PRINT STYLES - SINGLE PAGE LAYOUT */
         @media print {
-            @page { margin: 10mm; size: A4; }
-            body, .container { background: white; margin: 0; padding: 0; max-width: 100%; }
-            .no-print, .app-header, .patient-list-section, .btn, .card-header-actions, .auto-mic-container, .mic-btn, .add-med-link, #authContainer, #loadingOverlay, .template-area, .modal, .add-med-btn-inline { display: none !important; }
+            body, .container { background: white; margin: 0; padding: 0; max-width: 100%; font-size: 14px; }
+            .no-print, .app-header, .patient-list-section, .btn, .card-header-actions, .auto-mic-container, .mic-btn, .add-med-link, #authContainer, #loadingOverlay, .template-area, .modal, .add-med-btn-inline, .duration-checks, .custom-dropdown-container .custom-dropdown { display: none !important; }
             .print-only { display: block !important; }
             .card { box-shadow: none; padding: 0; border: none; }
             .print-container { padding: 20px; font-family: 'Times New Roman', serif; }
             
-            .print-header { display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 5px; }
-            .dr-info h1 { color: #b91c1c !important; font-size: 26px; margin: 0; font-weight: 900; text-transform: uppercase; display: flex; align-items: baseline; gap: 10px; }
-            .dr-info .print-degree { font-size: 14px; color: #000; font-weight: 700; }
-            .dr-info p { margin: 2px 0; font-size: 12px; font-weight: bold; color: #000; }
-            .clinic-info-container { display: flex; align-items: center; gap: 15px; text-align: right; }
-            .clinic-logo-img { height: 60px; width: auto; }
-            .clinic-name { color: #1e3a8a !important; font-size: 20px; font-weight: 900; text-transform: uppercase; border: 2px solid #1e3a8a; padding: 2px 8px; display: inline-block; }
+            /* Print Header - Flawless A5 Scaling & Alignment */
+            .print-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; align-items: flex-start; flex-wrap: nowrap;}
+            .dr-info { min-width: 40%; }
+            .dr-info h1 { color: #b91c1c !important; font-size: 16px !important; margin: 0; font-weight: 900; text-transform: uppercase; display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+            .dr-info .print-degree { font-size: 12px; color: #000; font-weight: 700; }
+            .dr-info p { margin: 2px 0; font-size: 11px; font-weight: bold; color: #000; line-height: 1.2;}
             
-            /* Two separate pages layout */
-            .print-page { 
-                display: flex; flex-direction: column; 
-                position: relative;
-                page-break-after: always; 
-            }
+            .clinic-info-container { display: flex; align-items: flex-start; gap: 8px; text-align: right; justify-content: flex-end; min-width: 50%; }
+            .clinic-logo-img { height: 45px; width: auto; }
+            .clinic-info { display: flex; flex-direction: column; align-items: flex-end; }
+            .clinic-name { color: #1e3a8a !important; font-size: 14px !important; font-weight: 900; text-transform: uppercase; border: 2px solid #1e3a8a; padding: 2px 4px; display: inline-block; white-space: nowrap; margin-bottom: 2px;}
+            .clinic-details { font-size: 10px; line-height: 1.2; white-space: nowrap; }
             
-            .page-break-before { page-break-before: always; }
+            .print-page { display: flex; flex-direction: column; position: relative; }
 
-            /* Add padding to second page header so it doesn't touch top */
-            #printPage2 { padding-top: 30px; }
-
-            .rx-badge { text-align: center; margin: 20px 0; }
-            .rx-badge span { background: #222; color: white !important; padding: 6px 30px; border-radius: 4px; font-weight: bold; letter-spacing: 2px; font-size: 16px; -webkit-print-color-adjust: exact; }
+            /* Badges */
+            .rx-badge { text-align: center; margin: 12px 0; page-break-after: avoid; break-after: avoid; }
+            .rx-badge span { background: #222; color: white !important; padding: 4px 20px; border-radius: 4px; font-weight: bold; letter-spacing: 2px; font-size: 14px; -webkit-print-color-adjust: exact; }
             
-            /* Print Meta Grid */
-            .print-meta-grid { display: flex; justify-content: space-between; margin: 10px 0; font-weight: bold; font-size: 16px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+            /* Single Meta Grid for all details - Fixed at 18px */
+            .print-meta-grid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin: 8px 0 12px 0; font-weight: bold; font-size: 18px !important; border-bottom: 2px solid #000; padding-bottom: 8px; }
+            
+            /* Group Prescription and Table tightly to prevent orphans */
+            #printPrescriptionWrapper { page-break-inside: avoid; break-inside: avoid; }
             
             .rx-table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 2px solid #000; }
-            .rx-table th { border: 1px solid #000; padding: 6px; font-size: 12px; background: #e5e7eb !important; text-align: center; font-weight: bold; }
-            .rx-table td { border: 1px solid #000; padding: 8px 5px; font-size: 16px; text-align: center; height: 40px; vertical-align: middle; font-weight: 600; color: #1e3a8a !important; }
+            .rx-table th { border: 1px solid #000; padding: 6px; font-size: 13px; background: #e5e7eb !important; text-align: center; font-weight: bold; }
+            .rx-table td { border: 1px solid #000; padding: 8px 5px; font-size: 16px; text-align: center; height: 35px; vertical-align: middle; font-weight: 600; color: #1e3a8a !important; }
             .rx-table td.drug-name-cell { text-align: left; padding-left: 15px; color: #000 !important; }
             
-            /* Signature flow layout */
-            .print-footer { 
-                margin-top: 50px; 
-                text-align: right; 
-                padding-bottom: 20px; 
-            }
-            .signature-line { border-top: 1px solid #000; margin-top: 10px; padding-top: 5px; font-weight: bold; display: inline-block; width: 200px; text-align: center;}
+            .print-footer { margin-top: 40px; text-align: right; padding-bottom: 20px; }
+            .signature-line { border-top: 1px solid #000; padding-top: 5px; font-weight: bold; display: inline-block; width: 200px; text-align: center;}
             
-            /* PRINT BOXES */
-            .print-section-box { border: 1px solid #000; padding: 5px 10px; margin-bottom: 8px; font-size: 14px; font-family: 'Inter', sans-serif; display: flex; align-items: baseline; gap: 10px; min-height: 35px;}
-            .print-section-title { font-weight: bold; min-width: 140px; text-decoration: underline;}
+            .print-section-box { border: 1px solid #000; padding: 5px 10px; margin-bottom: 6px; font-size: 14px; font-family: 'Inter', sans-serif; display: flex; align-items: baseline; gap: 10px; min-height: 25px;}
+            .print-section-title { font-weight: bold; min-width: 120px; text-decoration: underline;}
             .print-section-content { font-weight: 600; flex-grow: 1; white-space: pre-wrap; }
-            .print-details-box { border: 1px solid #000; padding: 10px; height: auto; min-height: 0; margin-bottom: 20px; font-size: 14px; white-space: pre-wrap; font-family: 'Inter', sans-serif; display: none; width: 100%; }
-            
-            .print-prescription-box { text-align: center; border: 1px solid #000; padding: 5px; margin: 15px 0 5px 0; font-weight: bold; background: #eee !important; -webkit-print-color-adjust: exact; }
-            .print-patient-rx-row { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; padding: 0 10px; }
+            .print-details-box { border: 1px solid #000; padding: 8px; height: auto; min-height: 0; margin-bottom: 15px; font-size: 14px; white-space: pre-wrap; font-family: 'Inter', sans-serif; display: none; width: 100%; }
         }
         .print-only { display: none; }
+        
+        /* Set Print Size Dynamically */
+        <style id="printPageStyle">@page { margin: 8mm; size: A4; }</style>
     </style>
 </head>
 <body>
@@ -397,7 +306,7 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Enter Duration (e.g., "3 weeks", "Since yesterday")</label>
+                    <label>Enter Duration (e.g., "3 weeks")</label>
                     <input type="text" id="manualDurationInput" class="form-control" placeholder="Type here..." onkeydown="if(event.key==='Enter') saveManualDuration()">
                 </div>
                 <button class="btn btn-primary" style="width:100%" onclick="saveManualDuration()">OK</button>
@@ -447,6 +356,79 @@
         </div>
     </div>
 
+    <div id="settingsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h4 class="modal-title">System Settings</h4>
+                <button class="btn btn-red btn-sm" onclick="closeModal('settingsModal')">X</button>
+            </div>
+            <div class="modal-body">
+                
+                <h5 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:5px;">Text Size Adjustment</h5>
+                <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="adjustFontSize(1)" style="flex:1;">➕ Increase Size (A+)</button>
+                    <button class="btn btn-primary" onclick="adjustFontSize(-1)" style="flex:1;">➖ Decrease Size (A-)</button>
+                </div>
+
+                <h5 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:5px;">Groq AI Dictation Keys (For High Accuracy STT)</h5>
+                <div class="grid-3">
+                    <div class="form-group"><label>Key 1 (Primary)</label><input type="password" id="set-groq1" placeholder="gsk_..."></div>
+                    <div class="form-group"><label>Key 2 (Fallback)</label><input type="password" id="set-groq2" placeholder="gsk_..."></div>
+                    <div class="form-group"><label>Key 3 (Fallback)</label><input type="password" id="set-groq3" placeholder="gsk_..."></div>
+                </div>
+
+                <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Print Settings</h5>
+                <div class="form-group">
+                    <label>Page Size</label>
+                    <select id="setPageSize">
+                        <option value="A4">A4</option>
+                        <option value="A5">A5</option>
+                        <option value="Letter">Letter</option>
+                        <option value="Legal">Legal</option>
+                        <option value="Executive">Executive</option>
+                        <option value="B4">B4</option>
+                        <option value="B5">B5</option>
+                    </select>
+                </div>
+                
+                <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Patient Details Display (Print)</h5>
+                <div class="grid-3">
+                    <div class="form-group"><label>Name</label><select id="set-showName"><option value="visible">Visible</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Reg No</label><select id="set-showRegNo"><option value="visible">Visible</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Age/Sex</label><select id="set-showAgeSex"><option value="visible">Visible</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Date</label><select id="set-showDate"><option value="visible">Visible</option><option value="hidden">Hidden</option></select></div>
+                </div>
+
+                <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Examination Fields Customization</h5>
+                <div class="grid-3">
+                    <div class="form-group"><label>BP</label><select id="set-bp"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Pulse</label><select id="set-pulse"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>HB (g/dL)</label><select id="set-hb"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>RBS (mg/dL)</label><select id="set-rbs"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Creatinine (mg/dL)</label><select id="set-creatinine"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>ECG</label><select id="set-ecg"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>EEG</label><select id="set-eeg"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>NCV</label><select id="set-ncv"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Carotid Doppler / TCS</label><select id="set-doppler"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>CT/MRI</label><select id="set-ctmri"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Old Reports</label><select id="set-oldreports"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                </div>
+
+                <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Medicine Fields Customization</h5>
+                <div class="grid-3">
+                    <div class="form-group"><label>Medicine Name</label><select id="set-medName"><option value="compulsory">Compulsory</option><option value="optional">Optional</option></select></div>
+                    <div class="form-group"><label>Strength</label><select id="set-medStr"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Morning (M)</label><select id="set-medM"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Afternoon (A)</label><select id="set-medA"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Night (N)</label><select id="set-medN"><option value="optional">Optional</option><option value="compulsory">Compulsory</option><option value="hidden">Hidden</option></select></div>
+                    <div class="form-group"><label>Duration</label><select id="set-medDur"><option value="compulsory">Compulsory</option><option value="optional">Optional</option><option value="hidden">Hidden</option></select></div>
+                </div>
+                
+                <button class="btn btn-success" style="width:100%; margin-top:15px;" onclick="saveSystemSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
     <div id="authContainer">
         <div class="auth-card">
             <img src="logo.png" class="auth-logo" alt="Logo">
@@ -474,16 +456,17 @@
         <div class="container">
             <div class="app-header no-print">
                 <div class="header-left">
-                    <h1>Dr. G.M. WALI <span class="degree-text">M.D. D.M.</span></h1>
+                    <h1>DR. G.M. WALI <span class="degree-text">M.D. D.M.</span></h1>
                     <p>CHIEF NEUROLOGIST</p>
                     <p class="kmc-code">K.M.C. 12671</p>
                 </div>
                 <div class="header-right">
                     <div class="clinic-brand"><img src="logo.png" alt="Logo" class="clinic-logo-header"><div class="clinic-name">NEURO SPECIALITIES CENTRE</div></div>
                     <div class="nav-pills">
-                        <button id="btn-reception" class="nav-btn active">Reception Desk</button>
-                        <button id="btn-doctor" class="nav-btn">Doctor Chamber</button>
-                        <button id="btn-medicines" class="nav-btn" onclick="openManagerAddModal()">Add New Medicine</button>
+                        <button id="btn-reception" class="nav-btn active" onclick="switchPage('reception')">Reception Desk</button>
+                        <button id="btn-doctor" class="nav-btn" onclick="switchPage('doctor')">Doctor Chamber</button>
+                        <button id="btn-medicines" class="nav-btn" onclick="switchPage('medicine')">Manage Medicines</button>
+                        <button class="nav-btn" onclick="openSettingsModal()">Settings</button>
                         <button id="btn-logout" class="nav-btn logout-btn" onclick="logout()">Logout</button>
                     </div>
                 </div>
@@ -494,12 +477,12 @@
                     <div class="card">
                         <h3 style="margin-top:0;">New Patient Registration</h3>
                         <form id="regForm">
-                            <div class="grid-3-top">
-                                <div class="form-group"><label>Patient Name *</label><input type="text" id="regName" required></div>
+                            <div class="form-group"><label>Patient Name *</label><input type="text" id="regName" required></div>
+                            <div class="grid-3-reception">
                                 <div class="form-group"><label>Age *</label><input type="number" id="regAge" placeholder="Years" required></div>
                                 <div class="form-group"><label>Sex *</label><select id="regSex" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                                <div class="form-group"><label>Phone Number</label><input type="tel" id="regPhone"></div>
                             </div>
-                            <div class="form-group"><label>Phone Number</label><input type="tel" id="regPhone"></div>
                             <div class="form-group"><label>Address</label><input type="text" id="regAddress"></div>
                             <div class="form-group"><label>Provisional Diagnosis</label><textarea id="regDiagnosis" rows="2" class="auto-expand"></textarea></div>
                             <button type="submit" id="btnRegister" class="btn btn-primary">Register Patient</button>
@@ -508,7 +491,7 @@
                     
                     <div class="card" style="height: fit-content;">
                         <h3 style="margin-top:0; color:var(--primary);">Review / Old Patient</h3>
-                        <div class="mic-wrapper" style="margin-bottom:10px;"><input type="text" id="reviewSearch" placeholder="🔍 Search Database..."><button id="mic-reviewSearch" class="mic-btn" onmousedown="handleManualMicClick(event, 'reviewSearch')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                        <div class="mic-wrapper" style="margin-bottom:10px;"><input type="text" id="reviewSearch" placeholder="🔍 Search Name or Reg No..." oninput="renderReviewSearch()"></div>
                         <div id="reviewList" style="height: 400px; overflow-y: auto; border:1px solid #eee; border-radius:6px; padding:10px;"><div style="text-align:center; padding:20px; color:#ccc;">Loading...</div></div>
                     </div>
                 </div>
@@ -530,7 +513,7 @@
 
             <div id="doctorPage" class="page no-print">
                 <div class="grid-doctor">
-                    <div class="card patient-list-section" style="height: 85vh; overflow-y: auto; display:flex; flex-direction:column;">
+                    <div class="card patient-list-section">
                         <div style="margin-bottom:10px;"><h3 style="margin:0; font-size:16px;">Waiting Queue (<span id="queueCount">0</span>)</h3></div>
                         <div id="doctorQueueList" style="flex-grow:1;"><div style="text-align:center; padding:20px; color:#ccc;">No patients waiting...</div></div>
                     </div>
@@ -548,31 +531,81 @@
                             <div id="historySection" style="display:none; background:#f0f9ff; padding:15px; border-radius:8px; margin-bottom:20px;"><h4>Previous Visits</h4><div id="historyContent">Loading history...</div></div>
 
                             <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <h5 style="margin-top:0; color:var(--primary); margin-bottom:10px;">On Examination</h5>
-                                <div class="lab-grid-row1">
-                                    <div class="form-group"><label>BP</label><input type="text" id="examBP" class="lab-input" placeholder="e.g. 140/80"></div>
-                                    <div class="form-group"><label>Pulse</label><input type="text" id="examPulse" class="lab-input" placeholder="e.g. 78"></div>
+                                <h5 style="margin-top:0; margin-bottom:10px; color:var(--primary);">Patient Personal Documents</h5>
+                                <div class="mic-wrapper">
+                                    <textarea id="personalDocs" class="form-control auto-expand" rows="2" placeholder="Type or use mic..."></textarea>
+                                    <button id="mic-personalDocs" class="mic-btn" onmousedown="handleManualMicClick(event, 'personalDocs')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
-                                <div class="lab-grid-row2">
-                                    <div class="form-group"><label>HB (g/dL)</label><input type="text" id="labHB" class="lab-input" placeholder="e.g. 12.5"></div>
-                                    <div class="form-group"><label>RBS (mg/dL)</label><input type="text" id="labRBS" class="lab-input" placeholder="e.g. 110"></div>
-                                    <div class="form-group"><label>Creatinine (mg/dL)</label><input type="text" id="labCreatinine" class="lab-input" placeholder="e.g. 0.9"></div>
+                            </div>
+
+                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <h5 style="margin-top:0; margin-bottom:10px; color:var(--primary);">Provisional Diagnosis</h5>
+                                <div class="mic-wrapper">
+                                    <textarea id="provDiagnosis" class="form-control auto-expand" rows="2" placeholder="Type or use mic..."></textarea>
+                                    <button id="mic-provDiagnosis" class="mic-btn" onmousedown="handleManualMicClick(event, 'provDiagnosis')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
-                                <div class="form-group"><label>ECG</label><textarea id="testECG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea></div>
-                                <div class="form-group"><label>EEG</label><textarea id="testEEG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea></div>
-                                <div class="form-group"><label>NCV</label><textarea id="testNCV" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea></div>
-                                <div class="form-group"><label>Carotid Doppler / TCS</label><textarea id="testDoppler" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea></div>
                             </div>
 
                             <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                                    <div class="notes-header"><input type="checkbox" id="includeNotesInPrint" class="notes-checkbox" title="Check to print on Rx"><label for="includeNotesInPrint" class="notes-label">Case Details / Notes (Check to print)</label></div>
+                                    <div class="notes-header">
+                                        <input type="checkbox" id="includeNotesInPrint" class="notes-checkbox" title="Check to print on Rx" checked>
+                                        <label for="includeNotesInPrint" class="notes-label">Case Details / Notes (Check to print)</label>
+                                    </div>
                                     <div class="template-area" id="templateChipContainer"><span class="template-add-btn" onclick="openTemplateManager()">+ Manage Templates</span></div>
                                 </div>
                                 <div class="mic-wrapper">
                                     <textarea id="docDetails" class="form-control auto-expand" rows="4" placeholder="Type or use templates..."></textarea>
                                     <button id="mic-docDetails" class="mic-btn" onmousedown="handleManualMicClick(event, 'docDetails')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
+                            </div>
+
+                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <div style="display:flex; align-items:center; margin-bottom:15px; gap: 10px;">
+                                    <input type="checkbox" id="includeExamInPrint" class="notes-checkbox" title="Check to print Exam" checked>
+                                    <label for="includeExamInPrint" class="notes-label" style="font-size:1.2em; color:var(--primary); margin:0;">On Examination</label>
+                                </div>
+                                
+                                <div class="lab-grid-row1">
+                                    <div class="form-group" id="fg-bp"><label>BP</label>
+                                        <div class="mic-wrapper"><input type="text" id="examBP" class="lab-input" placeholder="e.g. 140/80"><button id="mic-examBP" class="mic-btn" onmousedown="handleManualMicClick(event, 'examBP')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    </div>
+                                    <div class="form-group" id="fg-pulse"><label>Pulse</label>
+                                        <div class="mic-wrapper"><input type="text" id="examPulse" class="lab-input" placeholder="e.g. 78"><button id="mic-examPulse" class="mic-btn" onmousedown="handleManualMicClick(event, 'examPulse')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    </div>
+                                </div>
+                                <div class="lab-grid-row2">
+                                    <div class="form-group" id="fg-hb"><label>HB (g/dL)</label>
+                                        <div class="mic-wrapper"><input type="text" id="labHB" class="lab-input" placeholder="e.g. 12.5"><button id="mic-labHB" class="mic-btn" onmousedown="handleManualMicClick(event, 'labHB')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    </div>
+                                    <div class="form-group" id="fg-rbs"><label>RBS (mg/dL)</label>
+                                        <div class="mic-wrapper"><input type="text" id="labRBS" class="lab-input" placeholder="e.g. 110"><button id="mic-labRBS" class="mic-btn" onmousedown="handleManualMicClick(event, 'labRBS')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    </div>
+                                    <div class="form-group" id="fg-creatinine"><label>Creatinine (mg/dL)</label>
+                                        <div class="mic-wrapper"><input type="text" id="labCreatinine" class="lab-input" placeholder="e.g. 0.9"><button id="mic-labCreatinine" class="mic-btn" onmousedown="handleManualMicClick(event, 'labCreatinine')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    </div>
+                                </div>
+                                <div class="form-group" id="fg-ecg"><label>ECG</label>
+                                    <div class="mic-wrapper"><textarea id="testECG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testECG" class="mic-btn" onmousedown="handleManualMicClick(event, 'testECG')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                </div>
+                                <div class="form-group" id="fg-eeg"><label>EEG</label>
+                                    <div class="mic-wrapper"><textarea id="testEEG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testEEG" class="mic-btn" onmousedown="handleManualMicClick(event, 'testEEG')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                </div>
+                                <div class="form-group" id="fg-ncv"><label>NCV</label>
+                                    <div class="mic-wrapper"><textarea id="testNCV" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testNCV" class="mic-btn" onmousedown="handleManualMicClick(event, 'testNCV')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                </div>
+                                <div class="form-group" id="fg-doppler"><label>Carotid Doppler / TCS</label>
+                                    <div class="mic-wrapper"><textarea id="testDoppler" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testDoppler" class="mic-btn" onmousedown="handleManualMicClick(event, 'testDoppler')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                </div>
+                                <div class="form-group" id="fg-ctmri"><label>CT/MRI</label>
+                                    <div class="mic-wrapper"><textarea id="testCTMRI" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testCTMRI" class="mic-btn" onmousedown="handleManualMicClick(event, 'testCTMRI')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                </div>
+                                <div class="form-group" id="fg-oldreports"><label>Old Reports</label>
+                                    <div class="mic-wrapper"><textarea id="testOldReports" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testOldReports" class="mic-btn" onmousedown="handleManualMicClick(event, 'testOldReports')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                </div>
+                                
+                                <div id="customExamFields"></div>
+                                <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="addCustomExamRow()">+ Add Manual Field</button>
                             </div>
 
                             <div id="drugListContainer"></div>
@@ -590,49 +623,61 @@
 
     <div class="print-only print-container">
         
-        <div id="printPage1" class="print-page" style="display:none;">
+        <div id="printDocument" class="print-page">
+            
             <div class="print-header">
-                <div class="dr-info"><h1>Dr. G.M. WALI <span class="print-degree">M.D. D.M.</span></h1><p>CHIEF NEUROLOGIST</p><p>K.M.C. 12671</p></div>
-                <div class="clinic-info-container"><img src="logo.png" alt="Logo" class="clinic-logo-img"><div class="clinic-info"><div class="clinic-name">NEURO SPECIALITIES CENTRE</div><div class="clinic-details">3933, CLUB ROAD, BELGAUM-590 001<br>Ph.: 0831-2430625, E-mail: walidoc@hotmail.com</div></div></div>
+                <div class="dr-info">
+                    <h1>DR. G.M. WALI <span class="print-degree">M.D. D.M.</span></h1>
+                    <p>CHIEF NEUROLOGIST</p>
+                    <p>K.M.C. 12671</p>
+                </div>
+                <div class="clinic-info-container">
+                    <img src="logo.png" alt="Logo" class="clinic-logo-img">
+                    <div class="clinic-info">
+                        <div class="clinic-name">NEURO SPECIALITIES CENTRE</div>
+                        <div class="clinic-details">3933, CLUB ROAD, BELGAUM-590 001<br>Ph.: 0831-2430625, E-mail: walidoc@hotmail.com</div>
+                    </div>
+                </div>
             </div>
+
+            <div class="rx-badge" id="recordBadge"><span>PATIENT PERSONAL RECORDS</span></div>
             
             <div class="print-meta-grid">
-                <div id="printNameP1"></div>
-                <div id="printRegP1"></div>
-                <div id="printAgeSexP1"></div>
+                <div id="printNameAll"></div>
+                <div id="printRegAll"></div>
+                <div id="printAgeSexAll"></div>
+                <div id="printDateAll"></div>
             </div>
-            
+
             <div id="printExamBody"></div>
             <div id="printNotesBody" class="print-details-box" style="margin-top:10px;"></div>
-        </div>
 
-        <div id="printPage2" class="print-page page-break-before" style="display:none;">
-            <div class="print-header">
-                <div class="dr-info"><h1>Dr. G.M. WALI <span class="print-degree">M.D. D.M.</span></h1><p>CHIEF NEUROLOGIST</p><p>K.M.C. 12671</p></div>
-                <div class="clinic-info-container"><img src="logo.png" alt="Logo" class="clinic-logo-img"><div class="clinic-info"><div class="clinic-name">NEURO SPECIALITIES CENTRE</div><div class="clinic-details">3933, CLUB ROAD, BELGAUM-590 001<br>Ph.: 0831-2430625, E-mail: walidoc@hotmail.com</div></div></div>
+            <div id="printPrescriptionWrapper">
+                <div class="rx-badge" id="prescriptionBadge"><span>PRESCRIPTION</span></div>
+                <table class="rx-table" id="printRxTable">
+                    <thead>
+                        <tr>
+                            <th width="5%">Sl.<br>No.</th>
+                            <th width="40%">DRUG NAME</th>
+                            <th width="10%" class="print-col-m">Morning<br><span class="lang-sub">ಬೆಳಿಗ್ಗೆ / सकाळी</span></th>
+                            <th width="10%" class="print-col-a">Afternoon<br><span class="lang-sub">ಮಧ್ಯಾಹ್ನ / दुपारी</span></th>
+                            <th width="10%" class="print-col-n">Night<br><span class="lang-sub">ರಾತ್ರಿ / रात्री</span></th>
+                            <th width="10%">Total Qty.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="printTableBody"></tbody>
+                </table>
             </div>
-
-            <div class="print-meta-grid">
-                <div id="printNameP2"></div>
-                <div id="printRegP2"></div>
-                <div id="printDateP2"></div>
-            </div>
-
-            <div class="rx-badge"><span>PRESCRIPTION</span></div>
-
-            <table class="rx-table"><thead><tr><th width="5%">Sl.<br>No.</th><th width="40%">DRUG NAME</th><th width="10%">Morning<br><span class="lang-sub">ಬೆಳಿಗ್ಗೆ / सकाळी</span></th><th width="10%">Afternoon<br><span class="lang-sub">ಮಧ್ಯಾಹ್ನ / दुपारी</span></th><th width="10%">Night<br><span class="lang-sub">ರಾತ್ರಿ / रात्री</span></th><th width="10%">Total Qty.</th></tr></thead><tbody id="printTableBody"></tbody></table>
             
             <div class="print-footer"><div class="signature-line">Signature</div></div>
         </div>
 
     </div>
 
-    <datalist id="allMedicines"></datalist>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyAWNn0lX3UzfKkZ2ivirPMb3vu9GNGLcfg",
@@ -649,7 +694,6 @@
         const db = getFirestore(app);
         const CLINIC_CODE = "NEURO2026"; 
 
-        // CLINICAL TEMPLATES SEED
         const DEFAULT_TEMPLATES = [
             { name: "Headache", subtypes: ["Migraine", "Tension", "Cluster", "Sinusitis"], durations: ["5 Days", "10 Days", "15 Days", "1 Month"] },
             { name: "Epilepsy", subtypes: ["GTCS", "Focal", "Absence", "Myoclonic"], durations: ["1 Month", "2 Months", "3 Months", "6 Months"] },
@@ -661,12 +705,30 @@
             { name: "Parkinson's", subtypes: ["Tremor Dominant", "Rigidity Dominant"], durations: ["1 Month", "3 Months"] }
         ];
 
+        const defaultSettings = {
+            pageSize: 'A4',
+            bp: 'optional', pulse: 'optional', hb: 'optional', rbs: 'optional', creatinine: 'optional',
+            ecg: 'optional', eeg: 'optional', ncv: 'optional', doppler: 'optional', ctmri: 'optional', oldreports: 'optional',
+            medName: 'compulsory', medStr: 'optional', medM: 'optional', medA: 'optional', medN: 'optional', medDur: 'compulsory',
+            showName: 'visible', showRegNo: 'visible', showAgeSex: 'visible', showDate: 'visible',
+            groq1: '', groq2: '', groq3: ''
+        };
+
         let allPatients = [], waitingQueue = [], cloudMedicines = [], clinicalTemplates = [];
-        let currentPatient = null, rowCount = 0;
-        let recognition = null, isAutoMicOn = false, activeInputId = null, finalTranscript = '';
+        let currentPatient = null, rowCount = 0, customExamCount = 0;
+        
+        // --- HYBRID MIC STATE ---
+        let recognition = null, isAutoMicOn = false, activeInputId = null;
+        let mediaRecorder = null, audioChunks = [];
+        let isGroqActive = false;
+        
+        let sessionStartText = "";
+        let sessionCursorPos = 0;
+        let sessionSpace = "";
+        let currentWebkitText = "";
+
         let currentTemplateAction = null;
 
-        // --- TOAST FUNCTION ---
         function showToast(msg, type='neutral') {
             const t = document.getElementById('toast');
             t.className = type; 
@@ -675,12 +737,107 @@
             setTimeout(() => { t.className = ''; }, 800); 
         }
 
-        // --- TOGGLE DETAILS ---
+        window.adjustFontSize = function(delta) {
+            const root = document.documentElement;
+            const current = parseInt(getComputedStyle(root).getPropertyValue('--base-font-size'));
+            const newSize = current + delta;
+            if (newSize >= 12 && newSize <= 24) {
+                root.style.setProperty('--base-font-size', newSize + 'px');
+            }
+        }
+
         window.togglePatientDetails = function(el) {
             el.classList.toggle('expanded');
         }
 
-        // --- AUTH & INIT ---
+        window.openSettingsModal = () => {
+            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            document.getElementById('setPageSize').value = settings.pageSize || 'A4';
+            ['bp','pulse','hb','rbs','creatinine','ecg','eeg','ncv','doppler','ctmri','oldreports','medName','medStr','medM','medA','medN','medDur', 'showName', 'showRegNo', 'showAgeSex', 'showDate', 'groq1', 'groq2', 'groq3'].forEach(f => {
+                const el = document.getElementById(`set-${f}`);
+                if(el) el.value = settings[f] || defaultSettings[f] || '';
+            });
+            document.getElementById('settingsModal').style.display = 'flex';
+        };
+
+        window.saveSystemSettings = () => {
+            const settings = {
+                pageSize: document.getElementById('setPageSize').value,
+                bp: document.getElementById('set-bp').value,
+                pulse: document.getElementById('set-pulse').value,
+                hb: document.getElementById('set-hb').value,
+                rbs: document.getElementById('set-rbs').value,
+                creatinine: document.getElementById('set-creatinine').value,
+                ecg: document.getElementById('set-ecg').value,
+                eeg: document.getElementById('set-eeg').value,
+                ncv: document.getElementById('set-ncv').value,
+                doppler: document.getElementById('set-doppler').value,
+                ctmri: document.getElementById('set-ctmri').value,
+                oldreports: document.getElementById('set-oldreports').value,
+                medName: document.getElementById('set-medName').value,
+                medStr: document.getElementById('set-medStr').value,
+                medM: document.getElementById('set-medM').value,
+                medA: document.getElementById('set-medA').value,
+                medN: document.getElementById('set-medN').value,
+                medDur: document.getElementById('set-medDur').value,
+                showName: document.getElementById('set-showName').value,
+                showRegNo: document.getElementById('set-showRegNo').value,
+                showAgeSex: document.getElementById('set-showAgeSex').value,
+                showDate: document.getElementById('set-showDate').value,
+                groq1: document.getElementById('set-groq1').value.trim(),
+                groq2: document.getElementById('set-groq2').value.trim(),
+                groq3: document.getElementById('set-groq3').value.trim()
+            };
+            localStorage.setItem('neuroSettings', JSON.stringify(settings));
+            applySettings();
+            closeModal('settingsModal');
+            showToast("Settings Saved!", "success");
+        };
+
+        function applySettings() {
+            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            
+            let css = `@page { margin: 10mm; size: ${settings.pageSize || 'A4'}; }`;
+            if(settings.medStr === 'hidden') css += ` .col-weight { display: none !important; } .print-col-str { display: none !important; }`;
+            if(settings.medM === 'hidden') css += ` .col-m { display: none !important; } .print-col-m { display: none !important; }`;
+            if(settings.medA === 'hidden') css += ` .col-a { display: none !important; } .print-col-a { display: none !important; }`;
+            if(settings.medN === 'hidden') css += ` .col-n { display: none !important; } .print-col-n { display: none !important; }`;
+            if(settings.medDur === 'hidden') css += ` .col-days { display: none !important; }`;
+            
+            if(settings.showName === 'hidden') css += ` #printNameAll { display: none !important; }`;
+            if(settings.showRegNo === 'hidden') css += ` #printRegAll { display: none !important; }`;
+            if(settings.showAgeSex === 'hidden') css += ` #printAgeSexAll { display: none !important; }`;
+            if(settings.showDate === 'hidden') css += ` #printDateAll { display: none !important; }`;
+
+            const styleEl = document.getElementById('dynamicSettingsStyle');
+            if(styleEl) styleEl.innerHTML = css;
+
+            const fields = ['bp', 'pulse', 'hb', 'rbs', 'creatinine', 'ecg', 'eeg', 'ncv', 'doppler', 'ctmri', 'oldreports'];
+            fields.forEach(f => {
+                const fg = document.getElementById(`fg-${f}`);
+                if (fg) {
+                    fg.style.display = settings[f] === 'hidden' ? 'none' : 'block';
+                    const label = fg.querySelector('label');
+                    if(label) {
+                        label.innerText = label.innerText.replace(' *', '');
+                        if(settings[f] === 'compulsory') label.innerText += ' *';
+                    }
+                }
+            });
+        }
+
+        window.addCustomExamRow = () => {
+            customExamCount++;
+            const div = document.createElement('div');
+            div.className = 'custom-exam-row';
+            div.innerHTML = `
+                <input type="text" id="customExamTitle-${customExamCount}" placeholder="Field Name" style="flex:1; font-weight:bold;">
+                <input type="text" id="customExamVal-${customExamCount}" placeholder="Value" style="flex:2;">
+                <button class="btn btn-red btn-sm" onclick="this.parentElement.remove()">X</button>
+            `;
+            document.getElementById('customExamFields').appendChild(div);
+        }
+
         onAuthStateChanged(auth, (user) => {
             document.getElementById('loadingOverlay').style.display = 'none';
             if (user) {
@@ -715,6 +872,7 @@
 
         async function initApp() {
             setupListeners();
+            applySettings();
             await seedMedicines();
             await seedTemplates();
             
@@ -731,7 +889,8 @@
                 clinicalTemplates = s.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderTemplateChips(); renderTemplateManagerList();
             });
-            ['docDetails'].forEach(attachMicListeners);
+            
+            ['docDetails', 'personalDocs', 'provDiagnosis', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
             
             document.querySelectorAll('.auto-expand').forEach(el => {
                 el.addEventListener('input', function() {
@@ -740,18 +899,248 @@
                 });
             });
             
-            document.getElementById('includeNotesInPrint').checked = true;
-            
             const bpInput = document.getElementById('examBP');
             bpInput.addEventListener('input', function(e) {
                 if(this.value.length === 3 && !this.value.includes('/')) {
                     this.value += '/';
                 }
             });
+
+            document.addEventListener('click', function(e) {
+                if(!e.target.closest('.custom-dropdown-container')) {
+                    document.querySelectorAll('.custom-dropdown').forEach(d => d.style.display = 'none');
+                }
+            });
         }
 
         async function seedMedicines() { const snap = await getDocs(collection(db, "medicines")); if(snap.empty && typeof medicineDatabase !== 'undefined') for (const [n, s] of Object.entries(medicineDatabase)) await addDoc(collection(db, "medicines"), { name: n, strengths: s }); }
         async function seedTemplates() { const snap = await getDocs(collection(db, "clinicalTemplates")); if(snap.empty) for(const t of DEFAULT_TEMPLATES) await addDoc(collection(db, "clinicalTemplates"), t); }
+
+        async function callGroqAPI(audioBlob) {
+            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            let keys = [settings.groq1, settings.groq2, settings.groq3].filter(k => k);
+            if(keys.length === 0) return null;
+
+            let formData = new FormData();
+            formData.append("file", audioBlob, "audio.webm");
+            formData.append("model", "whisper-large-v3");
+            formData.append("temperature", "0");
+            formData.append("language", "en"); 
+            
+            let medNames = cloudMedicines.map(m => m.name).join(", ");
+            if(medNames) formData.append("prompt", "Medical terms: " + medNames.substring(0, 1000));
+
+            for(let key of keys) {
+                try {
+                    let res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                        method: "POST",
+                        headers: { "Authorization": `Bearer ${key}` },
+                        body: formData
+                    });
+                    if(res.status === 429) continue; 
+                    if(!res.ok) throw new Error("API Error");
+                    let data = await res.json();
+                    return data.text.trim();
+                } catch(e) {
+                    console.log("Groq API fallback triggered.");
+                }
+            }
+            showToast("All Groq API keys failed/rate limited", "error");
+            return null;
+        }
+
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition(); 
+            recognition.interimResults = true; 
+            recognition.lang = 'en-IN';
+            
+            recognition.onresult = (e) => {
+                if (!activeInputId) return; 
+                
+                let sessionTotalText = '';
+                for (let i = 0; i < e.results.length; ++i) {
+                    sessionTotalText += e.results[i][0].transcript;
+                }
+                currentWebkitText = sessionTotalText;
+
+                const el = document.getElementById(activeInputId);
+                
+                if (['docDetails', 'personalDocs', 'provDiagnosis', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(activeInputId)) {
+                    let tBefore = sessionStartText.substring(0, sessionCursorPos);
+                    let tAfter = sessionStartText.substring(sessionCursorPos);
+                    el.value = tBefore + sessionSpace + currentWebkitText + tAfter;
+                    el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
+                } else {
+                    el.value = currentWebkitText;
+                }
+            };
+
+            recognition.onend = () => { 
+                if(activeInputId) stopListening(); 
+            };
+        }
+
+        window.toggleAutoMic = () => { isAutoMicOn = document.getElementById('autoMicToggle').checked; if(!isAutoMicOn) stopListening(); };
+        
+        window.handleManualMicClick = (e, id) => { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            if(activeInputId === id) stopListening(); 
+            else { document.getElementById(id).focus(); startListening(id); } 
+        };
+        
+        async function startListening(id) {
+            if(!recognition) return; 
+            if(activeInputId === id) return; 
+            if(activeInputId) stopListening();
+            
+            activeInputId = id; 
+            const el = document.getElementById(id);
+            
+            if(!['docDetails', 'personalDocs', 'provDiagnosis', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) { 
+                el.value=''; 
+            }
+            
+            sessionStartText = el.value;
+            sessionCursorPos = el.selectionStart || sessionStartText.length;
+            let tBefore = sessionStartText.substring(0, sessionCursorPos);
+            sessionSpace = (tBefore && !tBefore.endsWith(' ') && !tBefore.endsWith('\n')) ? ' ' : '';
+            currentWebkitText = "";
+            audioChunks = [];
+
+            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            let keys = [settings.groq1, settings.groq2, settings.groq3].filter(k=>k);
+            isGroqActive = keys.length > 0;
+
+            if(isGroqActive) {
+                try {
+                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) audioChunks.push(e.data); };
+                    mediaRecorder.start();
+                } catch(err) {
+                    console.error("Mic access denied", err);
+                    isGroqActive = false;
+                }
+            }
+
+            let btnId = (id.includes('name-')?`mic-${id.split('-')[1]}`:`mic-${id}`);
+            const btn = document.getElementById(btnId); if(btn) btn.classList.add('listening');
+            
+            recognition.continuous = true; 
+            try{ recognition.start(); } catch(e){}
+        }
+
+        function stopListening() { 
+            if(!activeInputId) return; 
+            
+            let savedTargetId = activeInputId;
+            let savedWebkitText = currentWebkitText;
+            let savedSessionSpace = sessionSpace;
+            
+            activeInputId = null; 
+            stopListeningUI(); 
+            try{ recognition.stop(); }catch(e){}
+            
+            if(isGroqActive && mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.onstop = async () => {
+                    let blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioChunks = [];
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    
+                    if (!savedWebkitText.trim()) {
+                        if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId) startListening(savedTargetId);
+                        return;
+                    }
+
+                    showToast("✨ AI Processing...", "success");
+                    let groqText = await callGroqAPI(blob);
+                    
+                    if(groqText) {
+                        const el = document.getElementById(savedTargetId);
+                        if(el) {
+                            let currentVal = el.value;
+                            let textToReplace = savedSessionSpace + savedWebkitText;
+                            let lastIndex = currentVal.lastIndexOf(textToReplace);
+                            
+                            if (lastIndex !== -1) {
+                                el.value = currentVal.substring(0, lastIndex) + savedSessionSpace + groqText + currentVal.substring(lastIndex + textToReplace.length);
+                            } else {
+                                el.value = currentVal + savedSessionSpace + groqText;
+                            }
+                            el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
+                            
+                            if(savedTargetId.includes('name-')) handleMedicineInput(savedTargetId.split('-')[1]);
+                            if(savedTargetId === 'medManagerSearch') renderMedManagerList();
+                        }
+                    }
+                    
+                    if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId) {
+                        startListening(savedTargetId);
+                    }
+                };
+                mediaRecorder.stop();
+            } else {
+                if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId) {
+                    startListening(savedTargetId);
+                }
+            }
+        }
+
+        function stopListeningUI() { document.querySelectorAll('.mic-btn').forEach(b => b.classList.remove('listening')); }
+        
+        function attachMicListeners(id) {
+            const el = document.getElementById(id); if(!el)return;
+            
+            if (['docDetails', 'personalDocs', 'provDiagnosis', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) {
+                el.addEventListener('focus', (e) => { if(isAutoMicOn) startListening(id); });
+                el.addEventListener('keyup', (e) => {
+                    if (activeInputId === id && recognition && e.key.length === 1) { stopListening(); }
+                });
+                el.addEventListener('mouseup', () => {
+                    if (activeInputId === id && recognition) { stopListening(); }
+                });
+            } else {
+                el.addEventListener('focus', () => { el.select(); if(isAutoMicOn) startListening(id); });
+            }
+            el.addEventListener('blur', (e) => { setTimeout(() => { if(document.activeElement!==el) stopListening(); }, 200); });
+        }
+
+
+        // --- CUSTOM DROPDOWN LOGIC ---
+        window.showMedicineList = (rid) => {
+            const dropdown = document.getElementById(`med-dropdown-${rid}`);
+            dropdown.style.display = 'block';
+            filterMedicines(rid); 
+        };
+
+        window.filterMedicines = (rid) => {
+            const input = document.getElementById(`name-${rid}`);
+            const val = input.value.toLowerCase();
+            const dropdown = document.getElementById(`med-dropdown-${rid}`);
+            dropdown.innerHTML = '';
+            
+            const filtered = cloudMedicines.filter(m => m.name.toLowerCase().includes(val));
+            
+            filtered.forEach(m => {
+                const div = document.createElement('div');
+                div.innerText = m.name;
+                div.onclick = () => {
+                    input.value = m.name;
+                    dropdown.style.display = 'none';
+                    handleMedicineInput(rid);
+                };
+                dropdown.appendChild(div);
+            });
+            
+            if (filtered.length === 0 && val.length > 2) {
+                dropdown.style.display = 'none';
+                handleMedicineInput(rid); 
+            } else {
+                dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+                document.getElementById(`missing-alert-${rid}`).innerHTML = '';
+            }
+        };
 
         function handleMedicineInput(rid) {
             const input = document.getElementById(`name-${rid}`);
@@ -764,7 +1153,7 @@
 
             if (med) {
                 missingDiv.innerHTML = '';
-                med.strengths.forEach(opt => {
+                (med.strengths || []).forEach(opt => {
                     const el = document.createElement('option');
                     el.value = opt; el.innerText = opt;
                     select.appendChild(el);
@@ -788,6 +1177,7 @@
         window.toggleStrengthMode = (rid, mode) => {
             const select = document.getElementById(`str-select-${rid}`);
             const manualBox = document.getElementById(`str-manual-box-${rid}`);
+            if(!select || !manualBox) return;
             
             if (mode === 'manual') {
                 select.style.display = 'none';
@@ -802,9 +1192,7 @@
 
         window.handleStrengthChange = (rid) => {
             const select = document.getElementById(`str-select-${rid}`);
-            if (select.value === 'manual') {
-                toggleStrengthMode(rid, 'manual');
-            }
+            if (select.value === 'manual') toggleStrengthMode(rid, 'manual');
         };
 
         window.openAddRowModal = (rid, name) => {
@@ -856,6 +1244,8 @@
                 });
                 const man = document.createElement('option'); man.value = 'manual'; man.innerText = '✎ Manual Input'; select.appendChild(man);
                 document.getElementById(`missing-alert-${targetId}`).innerHTML = '';
+            } else {
+                renderMedManagerList();
             }
             
             closeModal('universalMedModal');
@@ -863,17 +1253,29 @@
         };
 
         window.deleteMedicine = async function(id) { if(confirm("Delete?")) await deleteDoc(doc(db, "medicines", id)); }
-        window.quickAddMedicine = function(name) { switchPage('medicine'); showAddMedForm(); document.getElementById('newMedName').value = name; }
         
-        function renderMedManagerList() {
-            const term = document.getElementById('medManagerSearch').value.toLowerCase();
-            const container = document.getElementById('medManagerList'); container.innerHTML = "";
-            cloudMedicines.filter(m => m.name.toLowerCase().includes(term)).forEach(m => {
+        window.renderMedManagerList = function() {
+            const searchEl = document.getElementById('medManagerSearch');
+            if(!searchEl) return;
+            const term = searchEl.value.toLowerCase();
+            const container = document.getElementById('medManagerList'); 
+            if(!container) return;
+            container.innerHTML = "";
+            
+            const filtered = cloudMedicines.filter(m => (m.name || '').toLowerCase().includes(term));
+            
+            if(filtered.length === 0) {
+                container.innerHTML = "<div style='padding:20px; text-align:center; color:#999;'>No medicines found. Click '+ Add New Medicine' above to add one.</div>";
+                return;
+            }
+
+            filtered.forEach(m => {
+                const strengthsStr = (m.strengths || []).join(', ');
                 container.innerHTML += `
                     <div class="med-list-item">
-                        <div><strong>${m.name}</strong> <br> <small style="color:#666">${m.strengths.join(', ')}</small></div>
+                        <div><strong>${m.name}</strong> <br> <small style="color:#666">${strengthsStr}</small></div>
                         <div style="display:flex; gap:5px;">
-                            <button class="btn btn-secondary btn-sm" onclick="openManagerEditModal('${m.id}', '${m.name}', '${m.strengths.join(", ")}')">Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openManagerEditModal('${m.id}', '${m.name.replace(/'/g, "\\'")}', '${strengthsStr.replace(/'/g, "\\'")}')">Edit</button>
                             <button class="btn btn-red btn-sm" onclick="deleteMedicine('${m.id}')">Delete</button>
                         </div>
                     </div>`;
@@ -891,14 +1293,16 @@
             document.getElementById('btnFinish').onclick = finishConsultation;
             document.getElementById('btnPrint').onclick = saveAndPrint;
             document.getElementById('reviewSearch').onkeyup = renderReviewSearch;
-            document.getElementById('btnToggleHistory').onclick = toggleHistory;
         }
-        function switchPage(page) {
+        window.switchPage = function(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(page + 'Page').classList.add('active');
             if(page === 'reception') document.getElementById('btn-reception').classList.add('active');
             else if(page === 'doctor') document.getElementById('btn-doctor').classList.add('active');
-            else if(page === 'medicine') document.getElementById('btn-medicines').classList.add('active');
+            else if(page === 'medicine') {
+                document.getElementById('btn-medicines').classList.add('active');
+                renderMedManagerList();
+            }
         }
 
         async function registerPatient() {
@@ -938,16 +1342,51 @@
                 <div class="patient-list-item review-item" onclick="togglePatientDetails(this)">
                     <div class="patient-list-header">
                         <div><strong>${p.name}</strong> <small>(#${p.regNo || '?'} | ${p.age}Y/${p.sex})</small></div>
-                        <button class="btn btn-yellow btn-sm" onclick="event.stopPropagation(); sendToDoctor('${p.id}')">Send to Doctor</button>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-yellow btn-sm" onclick="event.stopPropagation(); sendToDoctor('${p.id}')">Send to Doctor</button>
+                            <button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deletePatient('${p.id}', ${p.regNo})">Delete</button>
+                        </div>
                     </div>
                     <div class="patient-details-expanded">
-                        <div style="font-size:12px; margin-bottom:2px;">📞 ${p.phone || '-'}</div>
-                        <div style="font-size:12px;">🏠 ${p.address || '-'}</div>
+                        <div style="font-size:0.9em; margin-bottom:4px;">📞 ${p.phone || '-'}</div>
+                        <div style="font-size:0.9em;">🏠 ${p.address || '-'}</div>
                     </div>
                 </div>`;
             });
         }
+        
         window.sendToDoctor = async (id) => { await updateDoc(doc(db, "patients", id), { status: 'waiting', timestamp: serverTimestamp() }); showToast("Sent to Doctor", "success"); };
+        
+        window.deletePatient = async (id, regNo) => {
+            if(!confirm("Are you sure you want to delete this patient? Subsequent patient numbers will shift down.")) return;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                await deleteDoc(doc(db, "patients", id));
+                
+                const snapshot = await getDocs(collection(db, "patients"));
+                const batch = writeBatch(db);
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.regNo > regNo) {
+                        batch.update(docSnap.ref, { regNo: data.regNo - 1 });
+                    }
+                });
+                
+                const counterRef = doc(db, "counters", "patients");
+                const counterDoc = await getDoc(counterRef);
+                if (counterDoc.exists()) {
+                    batch.update(counterRef, { current: counterDoc.data().current - 1 });
+                }
+                
+                await batch.commit();
+                showToast("Patient deleted successfully", "success");
+            } catch(e) {
+                console.error(e);
+                showToast("Error deleting patient", "error");
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
+        };
+
         function renderDoctorQueue() {
             const container = document.getElementById('doctorQueueList'); container.innerHTML = ""; document.getElementById('queueCount').innerText = waitingQueue.length;
             waitingQueue.forEach(p => {
@@ -959,24 +1398,70 @@
         function selectPatient(p) {
             currentPatient = p; document.getElementById('workspace').style.display = 'block';
             document.getElementById('pNameDisplay').innerText = p.name; document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | ${p.phone}`;
-            renderDoctorQueue(); document.getElementById('drugListContainer').innerHTML = ''; document.getElementById('docDetails').value = ''; 
-            ['examBP','examPulse','labHB','labRBS','labCreatinine','testECG','testEEG','testNCV','testDoppler'].forEach(id => document.getElementById(id).value = '');
+            renderDoctorQueue(); 
+            document.getElementById('drugListContainer').innerHTML = ''; 
+            
+            // Auto populate provisional diagnosis from reception desk
+            document.getElementById('provDiagnosis').value = p.diagnosis || '';
+            document.getElementById('personalDocs').value = '';
+            document.getElementById('docDetails').value = ''; 
+            
+            document.getElementById('customExamFields').innerHTML = ''; 
+            ['examBP','examPulse','labHB','labRBS','labCreatinine','testECG','testEEG','testNCV','testDoppler','testCTMRI','testOldReports'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.value = '';
+            });
             addDrugRow();
         }
 
         async function saveAndPrint() {
             if(!currentPatient) return;
-            const btn = document.getElementById('btnPrint'), notes = document.getElementById('docDetails').value, printNotes = document.getElementById('includeNotesInPrint').checked;
-            document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-            if(printNotes && !notes.trim()) { showToast("Notes are empty!", "error"); document.getElementById('docDetails').classList.add('input-error'); return; }
+            const btn = document.getElementById('btnPrint');
             
+            const personalDocs = document.getElementById('personalDocs').value;
+            const provDiagnosis = document.getElementById('provDiagnosis').value;
+            const notes = document.getElementById('docDetails').value;
+            const printNotes = document.getElementById('includeNotesInPrint').checked;
+            
+            document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+            
+            // Validate Compulsory Fields
+            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            const labs = {
+                bp: document.getElementById('examBP').value, pulse: document.getElementById('examPulse').value,
+                hb: document.getElementById('labHB').value, rbs: document.getElementById('labRBS').value, cr: document.getElementById('labCreatinine').value,
+                ecg: document.getElementById('testECG').value, eeg: document.getElementById('testEEG').value, ncv: document.getElementById('testNCV').value, 
+                doppler: document.getElementById('testDoppler').value, ctmri: document.getElementById('testCTMRI').value, oldreports: document.getElementById('testOldReports').value
+            };
+
+            const fieldMap = { bp: 'BP', pulse: 'Pulse', hb: 'HB', rbs: 'RBS', creatinine: 'Creatinine', ecg: 'ECG', eeg: 'EEG', ncv: 'NCV', doppler: 'Doppler', ctmri: 'CT/MRI', oldreports: 'Old Reports' };
+            for (const key of Object.keys(fieldMap)) {
+                if (settings[key] === 'compulsory' && !labs[key]) {
+                    showToast(`${fieldMap[key]} is compulsory!`, "error");
+                    return;
+                }
+            }
+
+            const includeExam = document.getElementById('includeExamInPrint').checked;
+            
+            const customLabs = [];
+            document.querySelectorAll('.custom-exam-row').forEach(row => {
+                const title = row.querySelector('input[id^="customExamTitle"]').value.trim();
+                const val = row.querySelector('input[id^="customExamVal"]').value.trim();
+                if(title && val) customLabs.push({ title, val });
+            });
+            labs.custom = customLabs;
+
             const drugs = []; let isValid = true;
             
             const rows = document.querySelectorAll('.drug-row');
             for(const row of rows) {
                 const rid = row.id.split('-')[1];
                 const name = document.getElementById(`name-${rid}`).value.trim();
-                if(!name) continue;
+                if(!name) {
+                    if (settings.medName === 'compulsory' && rows.length === 1) { isValid=false; showToast("Medicine Name required", "error"); return; }
+                    continue;
+                }
 
                 const type = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`)?.id.split('-')[1].toUpperCase();
                 if(!type) { isValid = false; showToast("Select Type for " + name, "error"); row.scrollIntoView(); return; }
@@ -984,81 +1469,106 @@
                 const sel = document.getElementById(`str-select-${rid}`);
                 const inp = document.getElementById(`str-input-${rid}`);
                 let str = (sel.style.display !== 'none') ? sel.value : inp.value;
-                if(!str && sel.style.display !== 'none') { isValid = false; showToast("Select Strength for " + name, "error"); return; }
+                if(!str && settings.medStr === 'compulsory') { isValid = false; showToast("Select Strength for " + name, "error"); return; }
                 
                 const getVal = (s) => document.getElementById(`${s}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${s}-${rid}`).value);
                 const m=getVal('m'), a=getVal('a'), n=getVal('n');
-                if(m+a+n === 0) { isValid = false; showToast("Select Dose for " + name, "error"); return; }
+                
                 const total = document.getElementById(`t-${rid}`).value;
-                if(total == 0 || total === "Error") { isValid = false; showToast("Check duration for " + name, "error"); return; }
+                if((total == 0 || total === "Error") && settings.medDur === 'compulsory') { isValid = false; showToast("Check duration for " + name, "error"); return; }
                 
                 drugs.push({ name, strength: str, type, m, a, n, t: total });
 
+                // ** AUTO-SAVE NEW MEDICINE / STRENGTH **
                 const existingMed = cloudMedicines.find(m => m.name.toLowerCase() === name.toLowerCase());
                 if(!existingMed) {
-                    await addDoc(collection(db, "medicines"), { name: name, strengths: [str] });
-                } else if(str && !existingMed.strengths.includes(str)) {
+                    await addDoc(collection(db, "medicines"), { name: name, strengths: str?[str]:[] });
+                } else if(str && !(existingMed.strengths || []).includes(str)) {
                     await updateDoc(doc(db, "medicines", existingMed.id), { strengths: arrayUnion(str) });
                 }
             }
 
-            if(!isValid) return; if(drugs.length === 0 && !notes) { showToast("Nothing to print!", "error"); return; }
+            if(!isValid) return; 
 
-            const labs = {
-                bp: document.getElementById('examBP').value, pulse: document.getElementById('examPulse').value,
-                hb: document.getElementById('labHB').value, rbs: document.getElementById('labRBS').value, cr: document.getElementById('labCreatinine').value,
-                ecg: document.getElementById('testECG').value, eeg: document.getElementById('testEEG').value, ncv: document.getElementById('testNCV').value, dop: document.getElementById('testDoppler').value
-            };
+            // Allow blank printing if literally nothing is filled (requested by user)
+            // Just removing the validation block that stops blank prints
 
             btn.disabled = true;
             try {
-                const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, labs };
-                await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record) });
+                const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, personalDocs, provDiagnosis, labs };
+                await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis }); // update main dx too
                 
-                const hasExam = (printNotes && notes) || labs.bp || labs.pulse || labs.hb || labs.rbs || labs.cr || labs.ecg || labs.eeg || labs.ncv || labs.dop;
+                const hasExamDataInternal = hasExamData(labs);
                 const hasMeds = drugs.length > 0;
 
-                const page1 = document.getElementById('printPage1');
-                if(hasExam) {
-                    page1.style.display = 'block';
-                    document.getElementById('printNameP1').innerText = "Patient Name: " + currentPatient.name;
-                    document.getElementById('printRegP1').innerText = "Reg No: " + (currentPatient.regNo || '-');
-                    document.getElementById('printAgeSexP1').innerText = `Age/Sex: ${currentPatient.age} / ${currentPatient.sex}`;
-                    
-                    let examHtml = "";
+                // --- ALWAYS PRINT META DATA ---
+                document.getElementById('printNameAll').innerText = "Name: " + currentPatient.name;
+                document.getElementById('printRegAll').innerText = "Reg No: " + (currentPatient.regNo || '-');
+                document.getElementById('printAgeSexAll').innerText = `Age/Sex: ${currentPatient.age} / ${currentPatient.sex}`;
+                document.getElementById('printDateAll').innerText = "Date: " + record.date;
+                
+                // Details + Exam Section
+                let examHtml = "";
+                
+                if (personalDocs.trim()) {
+                    examHtml += `<div class="print-section-box"><div class="print-section-title">Personal Docs:</div><div class="print-section-content">${personalDocs}</div></div>`;
+                }
+                if (provDiagnosis.trim()) {
+                    examHtml += `<div class="print-section-box"><div class="print-section-title">Prov. Diagnosis:</div><div class="print-section-content">${provDiagnosis}</div></div>`;
+                }
+                
+                if(includeExam && hasExamDataInternal) {
                     if(labs.bp || labs.pulse) examHtml += `<div class="print-section-box"><div class="print-section-title">On Examination:</div><div class="print-section-content">BP: ${labs.bp||'-'} &nbsp;&nbsp; Pulse: ${labs.pulse||'-'}</div></div>`;
                     if(labs.hb || labs.rbs || labs.cr) examHtml += `<div class="print-section-box"><div class="print-section-title">Blood Test:</div><div class="print-section-content">HB: ${labs.hb||'-'} &nbsp;&nbsp; RBS: ${labs.rbs||'-'} &nbsp;&nbsp; Cr: ${labs.cr||'-'}</div></div>`;
                     if(labs.ecg) examHtml += `<div class="print-section-box"><div class="print-section-title">ECG:</div><div class="print-section-content">${labs.ecg}</div></div>`;
                     if(labs.eeg) examHtml += `<div class="print-section-box"><div class="print-section-title">EEG:</div><div class="print-section-content">${labs.eeg}</div></div>`;
                     if(labs.ncv) examHtml += `<div class="print-section-box"><div class="print-section-title">NCV:</div><div class="print-section-content">${labs.ncv}</div></div>`;
-                    if(labs.dop) examHtml += `<div class="print-section-box"><div class="print-section-title">Carotid/TCS:</div><div class="print-section-content">${labs.dop}</div></div>`;
-                    document.getElementById('printExamBody').innerHTML = examHtml;
+                    if(labs.doppler) examHtml += `<div class="print-section-box"><div class="print-section-title">Carotid/TCS:</div><div class="print-section-content">${labs.doppler}</div></div>`;
+                    if(labs.ctmri) examHtml += `<div class="print-section-box"><div class="print-section-title">CT/MRI:</div><div class="print-section-content">${labs.ctmri}</div></div>`;
+                    if(labs.oldreports) examHtml += `<div class="print-section-box"><div class="print-section-title">Old Reports:</div><div class="print-section-content">${labs.oldreports}</div></div>`;
+                    
+                    if(labs.custom && labs.custom.length > 0) {
+                        labs.custom.forEach(c => {
+                            examHtml += `<div class="print-section-box"><div class="print-section-title">${c.title}:</div><div class="print-section-content">${c.val}</div></div>`;
+                        });
+                    }
+                }
+                
+                document.getElementById('printExamBody').innerHTML = examHtml;
 
-                    const pNotes = document.getElementById('printNotesBody');
-                    if(printNotes && notes) { pNotes.innerHTML = "<strong>Case Details:</strong><br>" + notes; pNotes.style.display = 'block'; } 
-                    else pNotes.style.display = 'none';
-                } else {
-                    page1.style.display = 'none';
+                const pNotes = document.getElementById('printNotesBody');
+                if(printNotes && notes.trim()) { 
+                    pNotes.innerHTML = "<strong>Case Details:</strong><br>" + notes.replace(/\n/g, '<br>'); 
+                    pNotes.style.display = 'block'; 
+                } else { 
+                    pNotes.style.display = 'none'; 
                 }
 
-                const page2 = document.getElementById('printPage2');
+                const rxWrapper = document.getElementById('printPrescriptionWrapper');
                 if(hasMeds) {
-                    page2.style.display = 'flex';
-                    document.getElementById('printNameP2').innerText = "Name: " + currentPatient.name;
-                    document.getElementById('printRegP2').innerText = "Reg No: " + (currentPatient.regNo || '-');
-                    document.getElementById('printDateP2').innerText = "Date: " + record.date;
-                    
+                    rxWrapper.style.display = 'block';
                     const tbody = document.getElementById('printTableBody'); tbody.innerHTML = '';
                     drugs.forEach((d, i) => {
                         const fmt = (v) => v==0.5 ? '½' : v;
-                        tbody.innerHTML += `<tr><td>${i+1}</td><td class="drug-name-cell">${d.type} ${d.name} <small>${d.strength}</small></td><td>${fmt(d.m)}</td><td>${fmt(d.a)}</td><td>${fmt(d.n)}</td><td>${d.t}</td></tr>`;
+                        
+                        let strHtml = settings.medStr === 'hidden' ? '' : `<span class="print-col-str"> <small>${d.strength||''}</small></span>`;
+                        let mHtml = settings.medM === 'hidden' ? '' : `<td class="print-col-m">${fmt(d.m)}</td>`;
+                        let aHtml = settings.medA === 'hidden' ? '' : `<td class="print-col-a">${fmt(d.a)}</td>`;
+                        let nHtml = settings.medN === 'hidden' ? '' : `<td class="print-col-n">${fmt(d.n)}</td>`;
+                        let tHtml = settings.medDur === 'hidden' ? '' : `<td>${d.t}</td>`;
+
+                        tbody.innerHTML += `<tr><td>${i+1}</td><td class="drug-name-cell">${d.type} ${d.name}${strHtml}</td>${mHtml}${aHtml}${nHtml}${tHtml}</tr>`;
                     });
                 } else {
-                    page2.style.display = 'none';
+                    rxWrapper.style.display = 'none';
                 }
 
                 window.print();
-            } catch(e) { console.log(e); showToast("Error!", "error"); } finally { btn.disabled = false; }
+            } catch(e) { console.log(e); showToast("Error printing", "error"); } finally { btn.disabled = false; }
+        }
+        
+        function hasExamData(labs) {
+            return labs.bp || labs.pulse || labs.hb || labs.rbs || labs.cr || labs.ecg || labs.eeg || labs.ncv || labs.doppler || labs.ctmri || labs.oldreports || (labs.custom && labs.custom.length > 0);
         }
 
         async function finishConsultation() {
@@ -1068,7 +1578,6 @@
             document.getElementById('workspace').style.display = 'none'; currentPatient = null;
         }
 
-        // --- ROW HELPERS ---
         window.addDrugRow = addDrugRow;
         window.calculateTotal = calculateTotal;
         window.updateStrengths = (id) => handleMedicineInput(id);
@@ -1095,28 +1604,6 @@
             calculateTotal(rid);
         };
 
-        function toggleHistory() {
-            const sec = document.getElementById('historySection'), cont = document.getElementById('historyContent');
-            if (sec.style.display === 'none') {
-                sec.style.display = 'block';
-                if (!currentPatient.history?.length) {
-                    cont.innerHTML = "No history.";
-                } else {
-                    cont.innerHTML = currentPatient.history.slice().reverse().map(h => {
-                        let labStr = "";
-                        if (h.labs) {
-                            const l = h.labs;
-                            const parts = [];
-                            if(l.bp) parts.push(`BP: ${l.bp}`);
-                            if(l.hb) parts.push(`HB: ${l.hb}`);
-                            if(parts.length > 0) labStr = `<div style="font-size:12px; color:#666; margin-bottom:5px;"><strong>Exam:</strong> ${parts.join(', ')}</div>`;
-                        }
-                        return `<div style="border-bottom:1px solid #ccc; padding:10px 0;"><strong>${h.date}</strong>${labStr}<p style="margin:5px 0;">${h.notes || ''}</p><ul style="margin:5px 0; padding-left:20px; font-size:13px;">${h.meds.map(m => `<li>${m.type} ${m.name} (${m.strength})</li>`).join('')}</ul></div>`;
-                    }).join('');
-                }
-            } else sec.style.display = 'none';
-        }
-
         function addDrugRow() {
             rowCount++;
             const container = document.getElementById('drugListContainer');
@@ -1124,7 +1611,12 @@
             const doseOpts = `<option value="0">0</option><option value="0.5">½</option><option value="2">2</option><option value="3">3</option>`; 
             
             div.innerHTML = `
-                <div class="col-name"><label>Medicine Name</label><div class="mic-wrapper"><input list="allMedicines" id="name-${rowCount}" placeholder="Search..." oninput="updateStrengths(${rowCount})"></div><div id="missing-alert-${rowCount}"></div>
+                <div class="col-name"><label>Medicine Name</label>
+                    <div class="custom-dropdown-container mic-wrapper">
+                        <input type="text" id="name-${rowCount}" autocomplete="off" placeholder="Search..." oninput="filterMedicines(${rowCount})" onfocus="showMedicineList(${rowCount})">
+                        <div id="med-dropdown-${rowCount}" class="custom-dropdown"></div>
+                    </div>
+                    <div id="missing-alert-${rowCount}"></div>
                 <div class="form-check-group"><label class="form-check-label"><input type="checkbox" id="type-tab-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'tab')" checked> TAB</label><label class="form-check-label"><input type="checkbox" id="type-syp-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'syp')"> Syp</label><label class="form-check-label"><input type="checkbox" id="type-cap-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'cap')"> Cap</label></div></div>
                 <div class="col-weight">
                     <label>Strength</label>
@@ -1134,9 +1626,9 @@
                         <button class="btn btn-red btn-sm" style="padding:2px 6px;" onclick="toggleStrengthMode(${rowCount}, 'select')">✕</button>
                     </div>
                 </div>
-                <div class="col-small"><label>M</label><div class="dose-input-group"><select id="m-${rowCount}" onchange="handleDoseInput(${rowCount},'m','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="m-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'m','check')" checked></label></div></div>
-                <div class="col-small"><label>A</label><div class="dose-input-group"><select id="a-${rowCount}" onchange="handleDoseInput(${rowCount},'a','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="a-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'a','check')"></label></div></div>
-                <div class="col-small"><label>N</label><div class="dose-input-group"><select id="n-${rowCount}" onchange="handleDoseInput(${rowCount},'n','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="n-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'n','check')" checked></label></div></div>
+                <div class="col-small col-m"><label>M</label><div class="dose-input-group"><select id="m-${rowCount}" onchange="handleDoseInput(${rowCount},'m','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="m-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'m','check')" checked></label></div></div>
+                <div class="col-small col-a"><label>A</label><div class="dose-input-group"><select id="a-${rowCount}" onchange="handleDoseInput(${rowCount},'a','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="a-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'a','check')"></label></div></div>
+                <div class="col-small col-n"><label>N</label><div class="dose-input-group"><select id="n-${rowCount}" onchange="handleDoseInput(${rowCount},'n','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="n-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'n','check')" checked></label></div></div>
                 <div class="col-days"><label>Duration</label><select id="d-preset-${rowCount}" onchange="handleDurationChange(${rowCount})"><option value="">Select</option><option value="5">5 Days</option><option value="10">10 Days</option><option value="15">15 Days</option><option value="30">1 Month</option><option value="60">2 Months</option><option value="90">3 Months</option><option value="120">4 Months</option><option value="150">5 Months</option><option value="180">6 Months</option><option value="manual">Manual</option></select>
                 <div class="duration-checks"><label class="dur-check-label"><input type="checkbox" id="d-5-${rowCount}" onclick="setDurationChk(${rowCount},5)"> 5d</label><label class="dur-check-label"><input type="checkbox" id="d-10-${rowCount}" onclick="setDurationChk(${rowCount},10)"> 10d</label><label class="dur-check-label"><input type="checkbox" id="d-15-${rowCount}" onclick="setDurationChk(${rowCount},15)"> 15d</label><label class="dur-check-label"><input type="checkbox" id="d-30-${rowCount}" onclick="setDurationChk(${rowCount},30)"> 1m</label></div>
                 <div id="d-manual-container-${rowCount}" style="display:none; margin-top:5px;"><input type="number" id="d-num-${rowCount}" style="width:50px" oninput="calculateTotal(${rowCount})"><select id="d-unit-${rowCount}" onchange="calculateTotal(${rowCount})"><option value="1">Days</option><option value="30">Months</option></select></div></div>
@@ -1144,6 +1636,7 @@
                 <div class="col-action"><button class="btn btn-red btn-sm" onclick="document.getElementById('row-${rowCount}').remove()">X</button></div>
             `;
             container.appendChild(div); attachMicListeners(`name-${rowCount}`);
+            applySettings(); 
         }
 
         function calculateTotal(rid) {
@@ -1155,7 +1648,6 @@
             document.getElementById(`t-${rid}`).value = Math.ceil((m+a+n)*d);
         }
 
-        // --- TEMPLATE FLOW ---
         function renderTemplateChips() {
             const container = document.getElementById('templateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
             clinicalTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
@@ -1164,17 +1656,13 @@
             currentTemplateAction = { template: t };
             const sub = t.subtypes || [], dur = t.durations || [];
             
-            // Step 1: Subtype
             if(sub.length > 0) {
                 openSelectionModal(`Type of ${t.name}`, sub, (s) => { 
                     currentTemplateAction.subtype = s; 
-                    // Step 2: Duration
                     if(dur.length > 0) {
-                        // Add Manual Option dynamically
                         const durOptions = [...dur, "✎ Manual Input"];
                         openSelectionModal(`Duration`, durOptions, (d) => {
                             if (d === "✎ Manual Input") {
-                                // Open Custom Modal
                                 document.getElementById('manualDurationInput').value = '';
                                 document.getElementById('manualDurationModal').style.display = 'flex';
                                 document.getElementById('manualDurationInput').focus();
@@ -1199,7 +1687,14 @@
         function finalizeTemplate() {
             const t = currentTemplateAction; let txt = `• Patient has ${t.template.name}`;
             if(t.subtype) txt += ` (${t.subtype})`; if(t.duration) txt += ` for ${t.duration}`; txt += ".";
-            const area = document.getElementById('docDetails'); area.value += (area.value ? "\n" : "") + txt; 
+            const area = document.getElementById('docDetails'); 
+            
+            const cursorStart = area.selectionStart;
+            const cursorEnd = area.selectionEnd;
+            const textBefore = area.value.substring(0, cursorStart);
+            const textAfter = area.value.substring(cursorEnd, area.value.length);
+            
+            area.value = textBefore + (textBefore && !textBefore.endsWith('\n') ? "\n" : "") + txt + textAfter;
             area.style.height = 'auto'; area.style.height = (area.scrollHeight) + 'px'; 
             closeModal('selectionModal');
         }
@@ -1218,35 +1713,6 @@
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
         function renderTemplateManagerList() { const div = document.getElementById('templateListContainer'); div.innerHTML=''; clinicalTemplates.forEach(t=>{ div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:5px;"><span>${t.name}</span><button class="btn btn-red btn-sm" onclick="deleteTemplate('${t.id}')">Del</button></div>`; }); }
 
-        // --- VOICE CORE ---
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition(); recognition.interimResults = true; recognition.lang = 'en-US';
-            recognition.onresult = (e) => {
-                if (!activeInputId) return; let interim = '';
-                for (let i = e.resultIndex; i < e.results.length; ++i) e.results[i].isFinal ? finalTranscript += e.results[i][0].transcript : interim += e.results[i][0].transcript;
-                const input = document.getElementById(activeInputId);
-                if(input.tagName === 'INPUT') { input.value = finalTranscript + interim; if(activeInputId.includes('name-')) handleMedicineInput(activeInputId.split('-')[1]); if(activeInputId === 'medManagerSearch') renderMedManagerList(); } else input.value = finalTranscript + interim;
-            };
-            recognition.onerror = () => stopListening();
-            recognition.onend = () => { if(activeInputId && isAutoMicOn && ['docDetails'].includes(activeInputId)) try{recognition.start()}catch(e){} else stopListeningUI(); };
-        }
-        window.toggleAutoMic = () => { isAutoMicOn = document.getElementById('autoMicToggle').checked; if(!isAutoMicOn) stopListening(); };
-        window.handleManualMicClick = (e, id) => { e.preventDefault(); e.stopPropagation(); if(activeInputId === id) stopListening(); else { document.getElementById(id).focus(); startListening(id); } };
-        function startListening(id) {
-            if(!recognition) return; if(activeInputId === id) return; if(activeInputId) stopListening();
-            activeInputId = id; const el = document.getElementById(id);
-            if(el.tagName === 'INPUT') { el.value=''; finalTranscript=''; } else { finalTranscript=el.value; if(finalTranscript && !finalTranscript.endsWith(' ')) finalTranscript+=' '; }
-            let btnId = (id==='docDetails'?'mic-docDetails':(id.includes('name-')?`mic-${id.split('-')[1]}`:`mic-${id}`));
-            const btn = document.getElementById(btnId); if(btn) btn.classList.add('listening');
-            recognition.continuous = ['docDetails'].includes(id); try{recognition.start()}catch(e){}
-        }
-        function stopListening() { if(!recognition)return; recognition.stop(); stopListeningUI(); activeInputId=null; }
-        function stopListeningUI() { document.querySelectorAll('.mic-btn').forEach(b => b.classList.remove('listening')); }
-        function attachMicListeners(id) {
-            const el = document.getElementById(id); if(!el)return;
-            el.addEventListener('focus', () => { el.select(); if(isAutoMicOn) startListening(id); });
-            el.addEventListener('blur', (e) => { setTimeout(() => { if(document.activeElement!==el) stopListening(); }, 100); });
-        }
     </script>
 </body>
 </html>
