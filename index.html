@@ -381,7 +381,7 @@
     <div id="templateManagerModal" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h4 class="modal-title">Manage Clinical Templates</h4>
+                <h4 class="modal-title">Manage Personal Document Templates</h4>
                 <button class="btn btn-red btn-sm" onclick="closeModal('templateManagerModal')">X</button>
             </div>
             <div class="modal-body">
@@ -393,6 +393,24 @@
                     <button class="btn btn-success" onclick="saveNewTemplate()">Save Template</button>
                 </div>
                 <div id="templateListContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="diagTemplateManagerModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h4 class="modal-title">Manage Diagnosis Templates</h4>
+                <button class="btn btn-red btn-sm" onclick="closeModal('diagTemplateManagerModal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#f9fafb; padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <h5>Add New Diagnosis</h5>
+                    <div class="form-group"><label>Main Category (e.g. Headache)</label><input type="text" id="diagTplName"></div>
+                    <div class="form-group"><label>Sub-Types (comma separated)</label><input type="text" id="diagTplTypes" placeholder="Migraine, Tension, Cluster"></div>
+                    <button class="btn btn-success" onclick="saveNewDiagTemplate()">Save Template</button>
+                </div>
+                <div id="diagTemplateListContainer"></div>
             </div>
         </div>
     </div>
@@ -586,9 +604,12 @@
                             </div>
 
                             <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <div style="display:flex; align-items:center; margin-bottom:10px; gap: 10px;">
-                                    <input type="checkbox" id="includeProvDiagInPrint" class="notes-checkbox" title="Check to print Prov Diag" checked>
-                                    <label for="includeProvDiagInPrint" class="notes-label">Provisional Diagnosis</label>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items: center;">
+                                    <div class="notes-header" style="margin:0;">
+                                        <input type="checkbox" id="includeProvDiagInPrint" class="notes-checkbox" title="Check to print Prov Diag" checked>
+                                        <label for="includeProvDiagInPrint" class="notes-label">Provisional Diagnosis</label>
+                                    </div>
+                                    <div class="template-area" id="diagTemplateChipContainer"><span class="template-add-btn" onclick="openDiagTemplateManager()">+ Manage Templates</span></div>
                                 </div>
                                 <div class="mic-wrapper">
                                     <textarea id="provDiagnosis" class="form-control auto-expand" rows="4" placeholder="Type or use mic..."></textarea>
@@ -742,6 +763,12 @@
             { name: "Parkinson's", subtypes: ["Tremor Dominant", "Rigidity Dominant"], durations: ["1 Month", "3 Months"] }
         ];
 
+        const DEFAULT_DIAG_TEMPLATES = [
+            { name: "Headache", subtypes: ["Migraine", "Tension Headache", "Cluster Headache"] },
+            { name: "Stroke", subtypes: ["Ischemic Stroke", "Hemorrhagic Stroke", "TIA"] },
+            { name: "Epilepsy", subtypes: ["GTCS", "Focal Seizure", "Absence Seizure"] }
+        ];
+
         const defaultSettings = {
             pageSize: 'A4',
             bp: 'optional', pulse: 'optional', hb: 'optional', rbs: 'optional', creatinine: 'optional',
@@ -751,7 +778,7 @@
             groq1: '', groq2: '', groq3: ''
         };
 
-        let allPatients = [], waitingQueue = [], cloudMedicines = [], clinicalTemplates = [];
+        let allPatients = [], waitingQueue = [], cloudMedicines = [], clinicalTemplates = [], diagTemplates = [];
         let currentPatient = null, rowCount = 0, customExamCount = 0;
         
         // --- HYBRID MIC STATE ---
@@ -912,6 +939,7 @@
             applySettings();
             await seedMedicines();
             await seedTemplates();
+            await seedDiagTemplates();
             
             onSnapshot(query(collection(db, "patients"), orderBy("timestamp", "desc")), (s) => {
                 allPatients = s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -925,6 +953,10 @@
             onSnapshot(collection(db, "clinicalTemplates"), (s) => {
                 clinicalTemplates = s.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderTemplateChips(); renderTemplateManagerList();
+            });
+            onSnapshot(collection(db, "diagnosisTemplates"), (s) => {
+                diagTemplates = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderDiagTemplateChips(); renderDiagTemplateManagerList();
             });
             
             ['provDiagnosis', 'docDetails', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
@@ -952,6 +984,7 @@
 
         async function seedMedicines() { const snap = await getDocs(collection(db, "medicines")); if(snap.empty && typeof medicineDatabase !== 'undefined') for (const [n, s] of Object.entries(medicineDatabase)) await addDoc(collection(db, "medicines"), { name: n, strengths: s }); }
         async function seedTemplates() { const snap = await getDocs(collection(db, "clinicalTemplates")); if(snap.empty) for(const t of DEFAULT_TEMPLATES) await addDoc(collection(db, "clinicalTemplates"), t); }
+        async function seedDiagTemplates() { const snap = await getDocs(collection(db, "diagnosisTemplates")); if(snap.empty) for(const t of DEFAULT_DIAG_TEMPLATES) await addDoc(collection(db, "diagnosisTemplates"), t); }
 
         async function callGroqAPI(audioBlob) {
             const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
@@ -1351,6 +1384,7 @@
             }
         }
 
+        // --- NEW EDIT PATIENT LOGIC ---
         window.openEditPatientModal = (id) => {
             const p = allPatients.find(x => x.id === id);
             if(!p) return;
@@ -1721,6 +1755,7 @@
             document.getElementById(`t-${rid}`).value = Math.ceil((m+a+n)*d);
         }
 
+        // --- PATIENT PERSONAL DOCS TEMPLATES ---
         function renderTemplateChips() {
             const container = document.getElementById('templateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
             clinicalTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
@@ -1728,7 +1763,6 @@
         function startTemplateFlow(t) {
             currentTemplateAction = { template: t };
             const sub = t.subtypes || [], dur = t.durations || [];
-            
             if(sub.length > 0) {
                 openSelectionModal(`Type of ${t.name}`, sub, (s) => { 
                     currentTemplateAction.subtype = s; 
@@ -1748,7 +1782,6 @@
                 });
             } else finalizeTemplate();
         }
-
         window.saveManualDuration = () => {
             const val = document.getElementById('manualDurationInput').value.trim();
             if(!val) return showToast("Please enter a duration", "error");
@@ -1756,26 +1789,48 @@
             closeModal('manualDurationModal');
             finalizeTemplate();
         }
-
         function finalizeTemplate() {
             const t = currentTemplateAction; let txt = `• Patient has ${t.template.name}`;
             if(t.subtype) txt += ` (${t.subtype})`; if(t.duration) txt += ` for ${t.duration}`; txt += ".";
             const area = document.getElementById('docDetails'); 
-            
-            const cursorStart = area.selectionStart;
-            const cursorEnd = area.selectionEnd;
-            const textBefore = area.value.substring(0, cursorStart);
-            const textAfter = area.value.substring(cursorEnd, area.value.length);
-            
-            area.value = textBefore + (textBefore && !textBefore.endsWith('\n') ? "\n" : "") + txt + textAfter;
+            const currentText = area.value;
+            const space = (currentText && !currentText.endsWith(' ') && !currentText.endsWith('\n')) ? '\n' : '';
+            area.value = currentText + space + txt + '\n';
             area.style.height = 'auto'; area.style.height = (area.scrollHeight) + 'px'; 
             closeModal('selectionModal');
         }
+
+        // --- PROVISIONAL DIAGNOSIS TEMPLATES ---
+        function renderDiagTemplateChips() {
+            const container = document.getElementById('diagTemplateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
+            diagTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startDiagTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
+        }
+        function startDiagTemplateFlow(t) {
+            const sub = t.subtypes || [];
+            if(sub.length > 0) {
+                openSelectionModal(`Select ${t.name} Type`, sub, (s) => { finalizeDiagTemplate(s); });
+            } else {
+                finalizeDiagTemplate(t.name);
+            }
+        }
+        function finalizeDiagTemplate(text) {
+            const area = document.getElementById('provDiagnosis');
+            let currentText = area.value.trim();
+            let lines = currentText ? currentText.split('\n').filter(l => l.trim() !== '') : [];
+            let nextNum = lines.length + 1;
+            let newText = `${nextNum}. ${text}`;
+            area.value = currentText + (currentText ? '\n' : '') + newText + '\n';
+            area.style.height = 'auto'; area.style.height = (area.scrollHeight) + 'px'; 
+            closeModal('selectionModal');
+        }
+
+        // --- SHARED MODAL LOGIC ---
         function openSelectionModal(title, opts, cb) {
             document.getElementById('selectionTitle').innerText = title; const grid = document.getElementById('selectionContainer'); grid.innerHTML = '';
             opts.forEach(o => { const btn = document.createElement('div'); btn.className = 'selection-btn'; btn.innerText = o; btn.onclick = () => cb(o); grid.appendChild(btn); });
             document.getElementById('selectionModal').style.display = 'flex';
         }
+        
         window.openTemplateManager = () => document.getElementById('templateManagerModal').style.display = 'flex';
         window.saveNewTemplate = async () => {
             const name = document.getElementById('tplName').value, subs = document.getElementById('tplTypes').value.split(','), durs = document.getElementById('tplDurations').value.split(',');
@@ -1783,9 +1838,19 @@
             document.getElementById('tplName').value=''; document.getElementById('tplTypes').value=''; document.getElementById('tplDurations').value='';
         };
         window.deleteTemplate = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "clinicalTemplates", id)); };
-        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
         function renderTemplateManagerList() { const div = document.getElementById('templateListContainer'); div.innerHTML=''; clinicalTemplates.forEach(t=>{ div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:5px;"><span>${t.name}</span><button class="btn btn-red btn-sm" onclick="deleteTemplate('${t.id}')">Del</button></div>`; }); }
+
+        window.openDiagTemplateManager = () => document.getElementById('diagTemplateManagerModal').style.display = 'flex';
+        window.saveNewDiagTemplate = async () => {
+            const name = document.getElementById('diagTplName').value, subs = document.getElementById('diagTplTypes').value.split(',');
+            if(!name) return; await addDoc(collection(db, "diagnosisTemplates"), { name, subtypes: subs });
+            document.getElementById('diagTplName').value=''; document.getElementById('diagTplTypes').value='';
+        };
+        window.deleteDiagTemplate = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "diagnosisTemplates", id)); };
+        function renderDiagTemplateManagerList() { const div = document.getElementById('diagTemplateListContainer'); div.innerHTML=''; diagTemplates.forEach(t=>{ div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:5px;"><span>${t.name}</span><button class="btn btn-red btn-sm" onclick="deleteDiagTemplate('${t.id}')">Del</button></div>`; }); }
+        
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
     </script>
 </body>
-        </html>
+</html>
