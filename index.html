@@ -536,21 +536,42 @@
                     <div class="card">
                         <h3 style="margin-top:0;">New Patient Registration</h3>
                         <form id="regForm">
-                            <div class="form-group"><label>Patient Name *</label><input type="text" id="regName" required></div>
+                            <div class="form-group">
+                                <label>Patient Name *</label>
+                                <div class="mic-wrapper">
+                                    <input type="text" id="regName" required>
+                                    <button id="mic-regName" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'regName')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                                </div>
+                            </div>
                             <div class="grid-3-reception">
                                 <div class="form-group"><label>Age *</label><input type="number" id="regAge" placeholder="Years" required></div>
                                 <div class="form-group"><label>Sex *</label><select id="regSex" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
                                 <div class="form-group"><label>Phone Number</label><input type="tel" id="regPhone"></div>
                             </div>
-                            <div class="form-group"><label>Address</label><input type="text" id="regAddress"></div>
-                            <div class="form-group"><label>Provisional Diagnosis</label><textarea id="regDiagnosis" rows="2" class="auto-expand"></textarea></div>
+                            <div class="form-group">
+                                <label>Address</label>
+                                <div class="mic-wrapper">
+                                    <input type="text" id="regAddress">
+                                    <button id="mic-regAddress" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'regAddress')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Provisional Diagnosis</label>
+                                <div class="mic-wrapper">
+                                    <textarea id="regDiagnosis" rows="2" class="auto-expand"></textarea>
+                                    <button id="mic-regDiagnosis" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'regDiagnosis')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                                </div>
+                            </div>
                             <button type="submit" id="btnRegister" class="btn btn-primary">Register Patient</button>
                         </form>
                     </div>
                     
                     <div class="card" style="height: fit-content;">
                         <h3 style="margin-top:0; color:var(--primary);">Review / Old Patient</h3>
-                        <div class="mic-wrapper" style="margin-bottom:10px;"><input type="text" id="reviewSearch" placeholder="🔍 Search Name or Reg No..." oninput="renderReviewSearch()"></div>
+                        <div class="mic-wrapper" style="margin-bottom:10px;">
+                            <input type="text" id="reviewSearch" placeholder="🔍 Search Name or Reg No..." oninput="renderReviewSearch()">
+                            <button id="mic-reviewSearch" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'reviewSearch')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                        </div>
                         <div id="reviewList" style="height: 400px; overflow-y: auto; border:1px solid #eee; border-radius:6px; padding:10px;"><div style="text-align:center; padding:20px; color:#ccc;">Loading...</div></div>
                     </div>
                 </div>
@@ -599,7 +620,7 @@
                                 </div>
                                 <div class="mic-wrapper">
                                     <textarea id="docDetails" class="form-control auto-expand" rows="16" placeholder="Type or use templates..."></textarea>
-                                    <button id="mic-docDetails" class="mic-btn" onmousedown="handleManualMicClick(event, 'docDetails')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                                    <button id="mic-docDetails" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'docDetails')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
                             </div>
 
@@ -613,7 +634,7 @@
                                 </div>
                                 <div class="mic-wrapper">
                                     <textarea id="provDiagnosis" class="form-control auto-expand" rows="4" placeholder="Type or use mic..."></textarea>
-                                    <button id="mic-provDiagnosis" class="mic-btn" onmousedown="handleManualMicClick(event, 'provDiagnosis')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                                    <button id="mic-provDiagnosis" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'provDiagnosis')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
                             </div>
 
@@ -625,40 +646,40 @@
                                 
                                 <div class="lab-grid-row1">
                                     <div class="form-group" id="fg-bp"><label>BP</label>
-                                        <div class="mic-wrapper"><input type="text" id="examBP" class="lab-input" placeholder="e.g. 140/80"><button id="mic-examBP" class="mic-btn" onmousedown="handleManualMicClick(event, 'examBP')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                        <div class="mic-wrapper"><input type="text" id="examBP" class="lab-input" placeholder="e.g. 140/80"><button id="mic-examBP" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'examBP')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                     </div>
                                     <div class="form-group" id="fg-pulse"><label>Pulse</label>
-                                        <div class="mic-wrapper"><input type="text" id="examPulse" class="lab-input" placeholder="e.g. 78"><button id="mic-examPulse" class="mic-btn" onmousedown="handleManualMicClick(event, 'examPulse')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                        <div class="mic-wrapper"><input type="text" id="examPulse" class="lab-input" placeholder="e.g. 78"><button id="mic-examPulse" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'examPulse')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                     </div>
                                 </div>
                                 <div class="lab-grid-row2">
                                     <div class="form-group" id="fg-hb"><label>HB (g/dL)</label>
-                                        <div class="mic-wrapper"><input type="text" id="labHB" class="lab-input" placeholder="e.g. 12.5"><button id="mic-labHB" class="mic-btn" onmousedown="handleManualMicClick(event, 'labHB')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                        <div class="mic-wrapper"><input type="text" id="labHB" class="lab-input" placeholder="e.g. 12.5"><button id="mic-labHB" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'labHB')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                     </div>
                                     <div class="form-group" id="fg-rbs"><label>RBS (mg/dL)</label>
-                                        <div class="mic-wrapper"><input type="text" id="labRBS" class="lab-input" placeholder="e.g. 110"><button id="mic-labRBS" class="mic-btn" onmousedown="handleManualMicClick(event, 'labRBS')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                        <div class="mic-wrapper"><input type="text" id="labRBS" class="lab-input" placeholder="e.g. 110"><button id="mic-labRBS" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'labRBS')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                     </div>
                                     <div class="form-group" id="fg-creatinine"><label>Creatinine (mg/dL)</label>
-                                        <div class="mic-wrapper"><input type="text" id="labCreatinine" class="lab-input" placeholder="e.g. 0.9"><button id="mic-labCreatinine" class="mic-btn" onmousedown="handleManualMicClick(event, 'labCreatinine')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                        <div class="mic-wrapper"><input type="text" id="labCreatinine" class="lab-input" placeholder="e.g. 0.9"><button id="mic-labCreatinine" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'labCreatinine')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                     </div>
                                 </div>
                                 <div class="form-group" id="fg-ecg"><label>ECG</label>
-                                    <div class="mic-wrapper"><textarea id="testECG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testECG" class="mic-btn" onmousedown="handleManualMicClick(event, 'testECG')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    <div class="mic-wrapper"><textarea id="testECG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testECG" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'testECG')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                 </div>
                                 <div class="form-group" id="fg-eeg"><label>EEG</label>
-                                    <div class="mic-wrapper"><textarea id="testEEG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testEEG" class="mic-btn" onmousedown="handleManualMicClick(event, 'testEEG')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    <div class="mic-wrapper"><textarea id="testEEG" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testEEG" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'testEEG')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                 </div>
                                 <div class="form-group" id="fg-ncv"><label>NCV</label>
-                                    <div class="mic-wrapper"><textarea id="testNCV" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testNCV" class="mic-btn" onmousedown="handleManualMicClick(event, 'testNCV')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    <div class="mic-wrapper"><textarea id="testNCV" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testNCV" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'testNCV')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                 </div>
                                 <div class="form-group" id="fg-doppler"><label>Carotid Doppler / TCS</label>
-                                    <div class="mic-wrapper"><textarea id="testDoppler" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testDoppler" class="mic-btn" onmousedown="handleManualMicClick(event, 'testDoppler')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    <div class="mic-wrapper"><textarea id="testDoppler" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testDoppler" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'testDoppler')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                 </div>
                                 <div class="form-group" id="fg-ctmri"><label>CT/MRI</label>
-                                    <div class="mic-wrapper"><textarea id="testCTMRI" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testCTMRI" class="mic-btn" onmousedown="handleManualMicClick(event, 'testCTMRI')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    <div class="mic-wrapper"><textarea id="testCTMRI" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testCTMRI" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'testCTMRI')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                 </div>
                                 <div class="form-group" id="fg-oldreports"><label>Old Reports</label>
-                                    <div class="mic-wrapper"><textarea id="testOldReports" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testOldReports" class="mic-btn" onmousedown="handleManualMicClick(event, 'testOldReports')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
+                                    <div class="mic-wrapper"><textarea id="testOldReports" class="lab-big-input auto-expand" rows="1" placeholder="Result"></textarea><button id="mic-testOldReports" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'testOldReports')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
                                 </div>
                                 
                                 <div id="customExamFields"></div>
@@ -791,6 +812,9 @@
         let sessionSpace = "";
         let currentWebkitText = "";
 
+        // Fields that append text instead of overwriting on fresh click
+        const KEEP_TEXT_MICS = ['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports', 'regDiagnosis', 'regAddress'];
+
         let currentTemplateAction = null;
 
         function showToast(msg, type='neutral') {
@@ -798,7 +822,7 @@
             t.className = type; 
             t.innerText = msg;
             t.classList.add('show');
-            setTimeout(() => { t.className = ''; }, 3000); // 3 seconds for errors
+            setTimeout(() => { t.className = ''; }, 3000); 
         }
 
         window.adjustFontSize = function(delta) {
@@ -959,7 +983,7 @@
                 renderDiagTemplateChips(); renderDiagTemplateManagerList();
             });
             
-            ['provDiagnosis', 'docDetails', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
+            ['reviewSearch', 'regName', 'regAddress', 'regDiagnosis', 'provDiagnosis', 'docDetails', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
             
             document.querySelectorAll('.auto-expand').forEach(el => {
                 el.addEventListener('input', function() {
@@ -1034,13 +1058,17 @@
 
                 const el = document.getElementById(activeInputId);
                 
-                if (['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(activeInputId)) {
+                if (KEEP_TEXT_MICS.includes(activeInputId)) {
                     let tBefore = sessionStartText.substring(0, sessionCursorPos);
                     let tAfter = sessionStartText.substring(sessionCursorPos);
                     el.value = tBefore + sessionSpace + currentWebkitText + tAfter;
                     el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
                 } else {
                     el.value = currentWebkitText;
+                }
+
+                if (e.results[e.results.length - 1].isFinal) {
+                    if (activeInputId === 'reviewSearch') renderReviewSearch();
                 }
             };
 
@@ -1065,6 +1093,10 @@
             
             activeInputId = id; 
             const el = document.getElementById(id);
+            
+            if(!KEEP_TEXT_MICS.includes(id)) { 
+                el.value=''; 
+            }
             
             sessionStartText = el.value;
             sessionCursorPos = el.selectionStart || sessionStartText.length;
@@ -1129,19 +1161,25 @@
                     if(groqText) {
                         const el = document.getElementById(savedTargetId);
                         if(el) {
-                            let currentVal = el.value;
-                            let textToReplace = savedSessionSpace + savedWebkitText;
-                            let lastIndex = currentVal.lastIndexOf(textToReplace);
-                            
-                            if (lastIndex !== -1) {
-                                el.value = currentVal.substring(0, lastIndex) + savedSessionSpace + groqText + currentVal.substring(lastIndex + textToReplace.length);
+                            if (KEEP_TEXT_MICS.includes(savedTargetId)) {
+                                let currentVal = el.value;
+                                let textToReplace = savedSessionSpace + savedWebkitText;
+                                let lastIndex = currentVal.lastIndexOf(textToReplace);
+                                
+                                if (lastIndex !== -1) {
+                                    el.value = currentVal.substring(0, lastIndex) + savedSessionSpace + groqText + currentVal.substring(lastIndex + textToReplace.length);
+                                } else {
+                                    el.value = currentVal + savedSessionSpace + groqText;
+                                }
                             } else {
-                                el.value = currentVal + savedSessionSpace + groqText;
+                                el.value = groqText;
                             }
+
                             el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
                             
                             if(savedTargetId.includes('name-')) handleMedicineInput(savedTargetId.split('-')[1]);
                             if(savedTargetId === 'medManagerSearch') renderMedManagerList();
+                            if(savedTargetId === 'reviewSearch') renderReviewSearch();
                         }
                     } else {
                         showToast("❌ AI Processing Failed. Reverted to basic dictation.", "error");
@@ -1166,7 +1204,7 @@
             
             el.addEventListener('focus', (e) => { 
                 if(isAutoMicOn) startListening(id); 
-                else if (!['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].includes(id)) el.select();
+                else if (!KEEP_TEXT_MICS.includes(id)) el.select();
             });
             
             el.addEventListener('mouseup', () => {
@@ -1755,7 +1793,6 @@
             document.getElementById(`t-${rid}`).value = Math.ceil((m+a+n)*d);
         }
 
-        // --- PATIENT PERSONAL DOCS TEMPLATES ---
         function renderTemplateChips() {
             const container = document.getElementById('templateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
             clinicalTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
@@ -1763,6 +1800,7 @@
         function startTemplateFlow(t) {
             currentTemplateAction = { template: t };
             const sub = t.subtypes || [], dur = t.durations || [];
+            
             if(sub.length > 0) {
                 openSelectionModal(`Type of ${t.name}`, sub, (s) => { 
                     currentTemplateAction.subtype = s; 
@@ -1782,6 +1820,7 @@
                 });
             } else finalizeTemplate();
         }
+
         window.saveManualDuration = () => {
             const val = document.getElementById('manualDurationInput').value.trim();
             if(!val) return showToast("Please enter a duration", "error");
@@ -1789,18 +1828,22 @@
             closeModal('manualDurationModal');
             finalizeTemplate();
         }
+
         function finalizeTemplate() {
             const t = currentTemplateAction; let txt = `• Patient has ${t.template.name}`;
             if(t.subtype) txt += ` (${t.subtype})`; if(t.duration) txt += ` for ${t.duration}`; txt += ".";
             const area = document.getElementById('docDetails'); 
-            const currentText = area.value;
-            const space = (currentText && !currentText.endsWith(' ') && !currentText.endsWith('\n')) ? '\n' : '';
-            area.value = currentText + space + txt + '\n';
+            
+            const cursorStart = area.selectionStart;
+            const cursorEnd = area.selectionEnd;
+            const textBefore = area.value.substring(0, cursorStart);
+            const textAfter = area.value.substring(cursorEnd, area.value.length);
+            
+            area.value = textBefore + (textBefore && !textBefore.endsWith('\n') ? "\n" : "") + txt + textAfter;
             area.style.height = 'auto'; area.style.height = (area.scrollHeight) + 'px'; 
             closeModal('selectionModal');
         }
 
-        // --- PROVISIONAL DIAGNOSIS TEMPLATES ---
         function renderDiagTemplateChips() {
             const container = document.getElementById('diagTemplateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
             diagTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startDiagTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
@@ -1824,7 +1867,6 @@
             closeModal('selectionModal');
         }
 
-        // --- SHARED MODAL LOGIC ---
         function openSelectionModal(title, opts, cb) {
             document.getElementById('selectionTitle').innerText = title; const grid = document.getElementById('selectionContainer'); grid.innerHTML = '';
             opts.forEach(o => { const btn = document.createElement('div'); btn.className = 'selection-btn'; btn.innerText = o; btn.onclick = () => cb(o); grid.appendChild(btn); });
