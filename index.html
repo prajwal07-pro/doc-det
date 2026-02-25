@@ -598,8 +598,8 @@
                         <div id="doctorQueueList" style="flex-grow:1;"><div style="text-align:center; padding:20px; color:#ccc;">No patients waiting...</div></div>
                     </div>
 
-                    <div id="workspace" style="display: none;">
-                        
+                    <div id="workspace" style="display: none; position: relative;">
+
                         <div class="auto-mic-fixed">
                             <span class="switch-label">Auto-Mic</span>
                             <label class="switch"><input type="checkbox" id="autoMicToggle" onchange="toggleAutoMic()"><span class="slider"></span></label>
@@ -609,7 +609,7 @@
                             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
                                 <div><h2 id="pNameDisplay" style="margin:0;">-</h2><small id="pDetailsDisplay" style="color:#6b7280;">-</small></div>
                                 <div style="display:flex; gap:15px; align-items:center;">
-                                    <button id="btnToggleHistory" class="btn btn-secondary">History</button>
+                                    <button id="btnToggleHistory" class="btn btn-secondary" onclick="toggleHistory()">History</button>
                                 </div>
                             </div>
 
@@ -695,7 +695,11 @@
                             <div style="margin-top:20px;"><button id="btnAddDrug" class="btn btn-green">+ Add Medicine</button></div>
                             <div style="margin-top: 20px; display:flex; justify-content:space-between; border-top:1px solid #eee; padding-top:20px;">
                                 <button id="btnFinish" class="btn btn-red">Clear from Queue</button>
-                                <button id="btnPrint" class="btn btn-primary">Save & Print</button>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-secondary" onclick="clearWorkspace()" title="Clear Form">Clear</button>
+                                    <button class="btn btn-green" onclick="saveDraft()" title="Save Draft">Save Draft</button>
+                                    <button id="btnPrint" class="btn btn-primary" onclick="saveAndPrint()" title="Print & History">Print & History</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1439,10 +1443,9 @@
             document.getElementById('regForm').onsubmit = async (e) => { e.preventDefault(); await registerPatient(); };
             document.getElementById('btnAddDrug').onclick = addDrugRow;
             document.getElementById('btnFinish').onclick = finishConsultation;
-            document.getElementById('btnPrint').onclick = saveAndPrint;
             document.getElementById('reviewSearch').onkeyup = renderReviewSearch;
-            document.getElementById('btnToggleHistory').onclick = toggleHistory;
         }
+        
         window.switchPage = function(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(page + 'Page').classList.add('active');
@@ -1454,7 +1457,6 @@
             }
         }
 
-        // --- NEW EDIT PATIENT LOGIC ---
         window.openEditPatientModal = (id) => {
             const p = allPatients.find(x => x.id === id);
             if(!p) return;
@@ -1582,11 +1584,77 @@
                 container.appendChild(div);
             });
         }
-        function selectPatient(p) {
-            currentPatient = p; document.getElementById('workspace').style.display = 'block';
-            document.getElementById('pNameDisplay').innerText = p.name; document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | ${p.phone}`;
-            renderDoctorQueue(); 
-            document.getElementById('drugListContainer').innerHTML = ''; 
+        
+        // === SAVE DRAFT FUNCTION ===
+        window.saveDraft = async () => {
+            if(!currentPatient) return;
+            const btn = document.querySelector('button[onclick="saveDraft()"]');
+            btn.disabled = true;
+
+            const provDiagnosis = document.getElementById('provDiagnosis').value;
+            const notes = document.getElementById('docDetails').value;
+            
+            const labs = {
+                bp: document.getElementById('examBP').value, pulse: document.getElementById('examPulse').value,
+                hb: document.getElementById('labHB').value, rbs: document.getElementById('labRBS').value, cr: document.getElementById('labCreatinine').value,
+                ecg: document.getElementById('testECG').value, eeg: document.getElementById('testEEG').value, ncv: document.getElementById('testNCV').value, 
+                doppler: document.getElementById('testDoppler').value, ctmri: document.getElementById('testCTMRI').value, oldreports: document.getElementById('testOldReports').value
+            };
+
+            const customLabs = [];
+            document.querySelectorAll('.custom-exam-row').forEach(row => {
+                const title = row.querySelector('input[id^="customExamTitle"]').value.trim();
+                const val = row.querySelector('input[id^="customExamVal"]').value.trim();
+                if(title && val) customLabs.push({ title, val });
+            });
+            labs.custom = customLabs;
+
+            const drugs = [];
+            const rows = document.querySelectorAll('.drug-row');
+            for(const row of rows) {
+                const rid = row.id.split('-')[1];
+                const name = document.getElementById(`name-${rid}`).value.trim();
+                if(!name) continue;
+
+                const typeEl = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`);
+                const type = typeEl ? typeEl.id.split('-')[1].toUpperCase() : '';
+                
+                const sel = document.getElementById(`str-select-${rid}`);
+                const inp = document.getElementById(`str-input-${rid}`);
+                let str = (sel && sel.style.display !== 'none') ? sel.value : (inp ? inp.value : '');
+                
+                const getVal = (s) => document.getElementById(`${s}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${s}-${rid}`).value) || 0;
+                
+                drugs.push({ 
+                    name, strength: str, type, 
+                    m: getVal('m'), a: getVal('a'), n: getVal('n'), 
+                    t: document.getElementById(`t-${rid}`).value,
+                    preset: document.getElementById(`d-preset-${rid}`)?.value || '',
+                    manualDNum: document.getElementById(`d-num-${rid}`)?.value || '',
+                    manualDUnit: document.getElementById(`d-unit-${rid}`)?.value || '1',
+                    d5: document.getElementById(`d-5-${rid}`)?.checked || false,
+                    d10: document.getElementById(`d-10-${rid}`)?.checked || false,
+                    d15: document.getElementById(`d-15-${rid}`)?.checked || false,
+                    d30: document.getElementById(`d-30-${rid}`)?.checked || false
+                });
+            }
+
+            try {
+                await updateDoc(doc(db, "patients", currentPatient.id), { 
+                    draft: { provDiagnosis, notes, labs, drugs }
+                });
+                showToast("Draft Saved Successfully!", "success");
+            } catch(e) {
+                console.error(e);
+                showToast("Error saving draft", "error");
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // === CLEAR WORKSPACE FUNCTION ===
+        window.clearWorkspace = () => {
+            if(!confirm("Are you sure you want to clear all current fields?")) return;
             
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = ''; 
@@ -1594,12 +1662,120 @@
             document.getElementById('customExamFields').innerHTML = ''; 
             ['examBP','examPulse','labHB','labRBS','labCreatinine','testECG','testEEG','testNCV','testDoppler','testCTMRI','testOldReports'].forEach(id => {
                 const el = document.getElementById(id);
-                if(el) el.value = '';
+                if(el) { el.value = ''; el.style.height = 'auto'; }
             });
-            addDrugRow();
+            
+            document.getElementById('drugListContainer').innerHTML = ''; 
+            addDrugRow(); 
+            showToast("Fields Cleared", "success");
+        };
+
+        // === MODIFIED SELECT PATIENT FUNCTION ===
+        window.selectPatient = function(p) {
+            currentPatient = p; document.getElementById('workspace').style.display = 'block';
+            document.getElementById('pNameDisplay').innerText = p.name; 
+            document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | ${p.phone}`;
+            renderDoctorQueue(); 
+            
+            // 1. Wipe current workspace blank
+            document.getElementById('provDiagnosis').value = '';
+            document.getElementById('docDetails').value = ''; 
+            document.getElementById('customExamFields').innerHTML = ''; 
+            ['examBP','examPulse','labHB','labRBS','labCreatinine','testECG','testEEG','testNCV','testDoppler','testCTMRI','testOldReports'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) { el.value = ''; el.style.height = 'auto'; }
+            });
+            document.getElementById('drugListContainer').innerHTML = ''; 
+
+            // 2. Load Draft if it exists
+            if (p.draft) {
+                document.getElementById('provDiagnosis').value = p.draft.provDiagnosis || '';
+                document.getElementById('docDetails').value = p.draft.notes || '';
+                
+                if (p.draft.labs) {
+                    document.getElementById('examBP').value = p.draft.labs.bp || '';
+                    document.getElementById('examPulse').value = p.draft.labs.pulse || '';
+                    document.getElementById('labHB').value = p.draft.labs.hb || '';
+                    document.getElementById('labRBS').value = p.draft.labs.rbs || '';
+                    document.getElementById('labCreatinine').value = p.draft.labs.cr || '';
+                    document.getElementById('testECG').value = p.draft.labs.ecg || '';
+                    document.getElementById('testEEG').value = p.draft.labs.eeg || '';
+                    document.getElementById('testNCV').value = p.draft.labs.ncv || '';
+                    document.getElementById('testDoppler').value = p.draft.labs.doppler || '';
+                    document.getElementById('testCTMRI').value = p.draft.labs.ctmri || '';
+                    document.getElementById('testOldReports').value = p.draft.labs.oldreports || '';
+                    
+                    if (p.draft.labs.custom) {
+                        p.draft.labs.custom.forEach(c => {
+                            addCustomExamRow();
+                            document.getElementById(`customExamTitle-${customExamCount}`).value = c.title;
+                            document.getElementById(`customExamVal-${customExamCount}`).value = c.val;
+                        });
+                    }
+                }
+                
+                if (p.draft.drugs && p.draft.drugs.length > 0) {
+                    p.draft.drugs.forEach(d => {
+                        addDrugRow();
+                        const rid = rowCount; 
+                        
+                        document.getElementById(`name-${rid}`).value = d.name;
+                        
+                        // Load Type
+                        if (d.type) {
+                            const typeLower = d.type.toLowerCase();
+                            const el = document.getElementById(`type-${typeLower}-${rid}`);
+                            if(el) { el.checked = true; handleTypeCheck(rid, typeLower); }
+                        }
+                        
+                        // Load Strength
+                        if (d.strength) {
+                            toggleStrengthMode(rid, 'manual');
+                            document.getElementById(`str-input-${rid}`).value = d.strength;
+                        }
+
+                        // Set dose values/checkboxes
+                        ['m', 'a', 'n'].forEach(slot => {
+                            const val = d[slot];
+                            if(val !== undefined) {
+                                document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','2','3'].includes(String(val)));
+                                document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
+                            }
+                        });
+
+                        // Set Durations
+                        if (d.preset) {
+                            document.getElementById(`d-preset-${rid}`).value = d.preset;
+                            handleDurationChange(rid);
+                        }
+                        if (d.preset === 'manual') {
+                            document.getElementById(`d-num-${rid}`).value = d.manualDNum || '';
+                            document.getElementById(`d-unit-${rid}`).value = d.manualDUnit || '1';
+                        }
+                        
+                        if (d.d5) document.getElementById(`d-5-${rid}`).checked = true;
+                        if (d.d10) document.getElementById(`d-10-${rid}`).checked = true;
+                        if (d.d15) document.getElementById(`d-15-${rid}`).checked = true;
+                        if (d.d30) document.getElementById(`d-30-${rid}`).checked = true;
+
+                        calculateTotal(rid);
+                    });
+                } else {
+                    addDrugRow();
+                }
+            } else {
+                addDrugRow(); 
+            }
+
+            // Adjust heights of auto-expanding text areas loaded with draft text
+            setTimeout(() => {
+                document.querySelectorAll('.auto-expand').forEach(el => {
+                    el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
+                });
+            }, 100);
         }
 
-        async function saveAndPrint() {
+        window.saveAndPrint = async () => {
             if(!currentPatient) return;
             const btn = document.getElementById('btnPrint');
             
