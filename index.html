@@ -141,9 +141,9 @@
 
         /* --- DRUG ROWS --- */
         .drug-row { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
-        .col-name { flex: 4; display: flex; flex-direction: column; gap: 5px; position: relative; } 
-        .col-weight { flex: 1.5; } 
-        .col-m, .col-a, .col-n { flex: 0.8; text-align: center; } 
+        .col-name { flex: 3.5; display: flex; flex-direction: column; gap: 5px; position: relative; } 
+        .col-weight { flex: 1.2; } 
+        .col-m, .col-a, .col-n { flex: 1.3; text-align: center; } 
         .col-days { flex: 2; } 
         .col-total { flex: 1; } 
         .col-action { flex: 0.4; text-align: right; padding-top: 28px; }
@@ -154,11 +154,16 @@
         .form-check-label input { width: auto; margin: 0; }
 
         .dose-input-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .checkbox-label { font-size: 0.8em; cursor: pointer; height: 20px; display: flex; align-items: center; }
+        .checkbox-label { font-size: 0.8em; cursor: pointer; height: 20px; display: flex; align-items: center; gap: 3px; }
         
+        /* SHARED BUTTON STYLES FOR DURATION & SYRUP */
         .duration-checks { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
         .dur-check-label { font-size: 0.8em; color: #000; display: flex; align-items: center; gap: 4px; cursor: pointer; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #9ca3af; }
         .dur-check-label input { margin: 0; width: auto; }
+        
+        .syp-col-group { display: none; flex-direction: column; gap: 6px; margin-top: 6px; align-items: center; width: 100%; }
+        .dur-check-label.syp-btn { width: 68px; justify-content: flex-start; padding: 4px 6px; box-sizing: border-box; }
+
         .add-med-btn-inline { font-size: 0.8em; color: #fff; background: var(--primary); padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 5px; display: inline-block; }
 
         /* CUSTOM DROPDOWN FOR MEDICINES */
@@ -386,11 +391,15 @@
             </div>
             <div class="modal-body">
                 <div style="background:#f9fafb; padding:15px; border-radius:8px; margin-bottom:20px;">
-                    <h5>Add New Template</h5>
+                    <h5>Add/Edit Template</h5>
+                    <input type="hidden" id="tplEditId">
                     <div class="form-group"><label>Condition Name (e.g. Headache)</label><input type="text" id="tplName"></div>
-                    <div class="form-group"><label>Sub-Types (comma separated)</label><input type="text" id="tplTypes" placeholder="Migraine, Tension, Cluster"></div>
-                    <div class="form-group"><label>Durations (comma separated)</label><input type="text" id="tplDurations" placeholder="5 Days, 10 Days, 1 Month"></div>
-                    <button class="btn btn-success" onclick="saveNewTemplate()">Save Template</button>
+                    <div class="form-group"><label>Sub-Types (comma separated, Optional)</label><input type="text" id="tplTypes" placeholder="Migraine, Tension, Cluster"></div>
+                    <div class="form-group"><label>Durations (comma separated, Optional)</label><input type="text" id="tplDurations" placeholder="5 Days, 10 Days, 1 Month"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-success" id="btnSaveTpl" onclick="saveNewTemplate()">Save Template</button>
+                        <button class="btn btn-secondary" onclick="resetTemplateForm()">Cancel Edit</button>
+                    </div>
                 </div>
                 <div id="templateListContainer"></div>
             </div>
@@ -405,10 +414,14 @@
             </div>
             <div class="modal-body">
                 <div style="background:#f9fafb; padding:15px; border-radius:8px; margin-bottom:20px;">
-                    <h5>Add New Diagnosis</h5>
+                    <h5>Add/Edit Diagnosis</h5>
+                    <input type="hidden" id="diagTplEditId">
                     <div class="form-group"><label>Main Category (e.g. Headache)</label><input type="text" id="diagTplName"></div>
-                    <div class="form-group"><label>Sub-Types (comma separated)</label><input type="text" id="diagTplTypes" placeholder="Migraine, Tension, Cluster"></div>
-                    <button class="btn btn-success" onclick="saveNewDiagTemplate()">Save Template</button>
+                    <div class="form-group"><label>Sub-Types (comma separated, Optional)</label><input type="text" id="diagTplTypes" placeholder="Migraine, Tension, Cluster"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-success" id="btnSaveDiagTpl" onclick="saveNewDiagTemplate()">Save Template</button>
+                        <button class="btn btn-secondary" onclick="resetDiagTemplateForm()">Cancel Edit</button>
+                    </div>
                 </div>
                 <div id="diagTemplateListContainer"></div>
             </div>
@@ -427,13 +440,6 @@
                 <div style="display:flex; gap:10px; margin-bottom: 20px;">
                     <button class="btn btn-primary" onclick="adjustFontSize(1)" style="flex:1;">➕ Increase Size (A+)</button>
                     <button class="btn btn-primary" onclick="adjustFontSize(-1)" style="flex:1;">➖ Decrease Size (A-)</button>
-                </div>
-
-                <h5 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:5px;">Groq AI Dictation Keys (For High Accuracy STT)</h5>
-                <div class="grid-3">
-                    <div class="form-group"><label>Key 1 (Primary)</label><input type="password" id="set-groq1" placeholder="gsk_..."></div>
-                    <div class="form-group"><label>Key 2 (Fallback)</label><input type="password" id="set-groq2" placeholder="gsk_..."></div>
-                    <div class="form-group"><label>Key 3 (Fallback)</label><input type="password" id="set-groq3" placeholder="gsk_..."></div>
                 </div>
 
                 <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Print Settings</h5>
@@ -696,7 +702,7 @@
                             <div style="margin-top: 20px; display:flex; justify-content:space-between; border-top:1px solid #eee; padding-top:20px;">
                                 <button id="btnFinish" class="btn btn-red">Clear from Queue</button>
                                 <div style="display: flex; gap: 10px;">
-                                    <button class="btn btn-secondary" onclick="clearWorkspace()" title="Clear Form">Clear</button>
+                                    <button class="btn btn-secondary" onclick="clearWorkspace()" title="Clear Form & Draft">Clear</button>
                                     <button class="btn btn-green" onclick="saveDraft()" title="Save Draft">Save Draft</button>
                                     <button id="btnPrint" class="btn btn-primary" onclick="saveAndPrint()" title="Print & History">Print & History</button>
                                 </div>
@@ -765,7 +771,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyAWNn0lX3UzfKkZ2ivirPMb3vu9GNGLcfg",
@@ -804,24 +810,25 @@
             bp: 'optional', pulse: 'optional', hb: 'optional', rbs: 'optional', creatinine: 'optional',
             ecg: 'optional', eeg: 'optional', ncv: 'optional', doppler: 'optional', ctmri: 'optional', oldreports: 'optional',
             medName: 'compulsory', medStr: 'optional', medM: 'optional', medA: 'optional', medN: 'optional', medDur: 'compulsory',
-            showName: 'visible', showRegNo: 'visible', showAgeSex: 'visible', showDate: 'visible',
-            groq1: '', groq2: '', groq3: ''
+            showName: 'visible', showRegNo: 'visible', showAgeSex: 'visible', showDate: 'visible'
         };
 
         let allPatients = [], waitingQueue = [], cloudMedicines = [], clinicalTemplates = [], diagTemplates = [];
+        let groqApiKeys = [];
         let currentPatient = null, rowCount = 0, customExamCount = 0;
         
         // --- HYBRID MIC STATE ---
         let recognition = null, isAutoMicOn = false, activeInputId = null;
-        let mediaRecorder = null, audioChunks = [];
+        let mediaRecorder = null; 
         let isGroqActive = false;
+        let forceStopMic = false; 
+        let isProcessing = false; 
         
         let sessionStartText = "";
         let sessionCursorPos = 0;
         let sessionSpace = "";
         let currentWebkitText = "";
 
-        // Fields that append text instead of overwriting on fresh click
         const KEEP_TEXT_MICS = ['provDiagnosis', 'docDetails', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports', 'regDiagnosis', 'regAddress'];
 
         let currentTemplateAction = null;
@@ -850,7 +857,7 @@
         window.openSettingsModal = () => {
             const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
             document.getElementById('setPageSize').value = settings.pageSize || 'A4';
-            ['bp','pulse','hb','rbs','creatinine','ecg','eeg','ncv','doppler','ctmri','oldreports','medName','medStr','medM','medA','medN','medDur', 'showName', 'showRegNo', 'showAgeSex', 'showDate', 'groq1', 'groq2', 'groq3'].forEach(f => {
+            ['bp','pulse','hb','rbs','creatinine','ecg','eeg','ncv','doppler','ctmri','oldreports','medName','medStr','medM','medA','medN','medDur', 'showName', 'showRegNo', 'showAgeSex', 'showDate'].forEach(f => {
                 const el = document.getElementById(`set-${f}`);
                 if(el) el.value = settings[f] || defaultSettings[f] || '';
             });
@@ -880,10 +887,7 @@
                 showName: document.getElementById('set-showName').value,
                 showRegNo: document.getElementById('set-showRegNo').value,
                 showAgeSex: document.getElementById('set-showAgeSex').value,
-                showDate: document.getElementById('set-showDate').value,
-                groq1: document.getElementById('set-groq1').value.trim(),
-                groq2: document.getElementById('set-groq2').value.trim(),
-                groq3: document.getElementById('set-groq3').value.trim()
+                showDate: document.getElementById('set-showDate').value
             };
             localStorage.setItem('neuroSettings', JSON.stringify(settings));
             applySettings();
@@ -973,6 +977,13 @@
             await seedMedicines();
             await seedTemplates();
             await seedDiagTemplates();
+
+            onSnapshot(doc(db, "system", "apikeys"), (d) => {
+                if(d.exists()) {
+                    const data = d.data();
+                    groqApiKeys = [data.groq1, data.groq2, data.groq3].filter(k => k);
+                }
+            });
             
             onSnapshot(query(collection(db, "patients"), orderBy("timestamp", "desc")), (s) => {
                 allPatients = s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1020,8 +1031,7 @@
         async function seedDiagTemplates() { const snap = await getDocs(collection(db, "diagnosisTemplates")); if(snap.empty) for(const t of DEFAULT_DIAG_TEMPLATES) await addDoc(collection(db, "diagnosisTemplates"), t); }
 
         async function callGroqAPI(audioBlob) {
-            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
-            let keys = [settings.groq1, settings.groq2, settings.groq3].filter(k => k);
+            let keys = groqApiKeys;
             if(keys.length === 0) return null;
 
             let formData = new FormData();
@@ -1091,8 +1101,15 @@
         window.handleManualMicClick = (e, id) => { 
             e.preventDefault(); 
             e.stopPropagation(); 
-            if(activeInputId === id) stopListening(); 
-            else { document.getElementById(id).focus(); startListening(id); } 
+            
+            if(activeInputId === id || isProcessing) {
+                forceStopMic = true; 
+                if(activeInputId === id) stopListening(); 
+            } else {
+                forceStopMic = false;
+                document.getElementById(id).focus(); 
+                startListening(id); 
+            } 
         };
         
         async function startListening(id) {
@@ -1112,17 +1129,16 @@
             let tBefore = sessionStartText.substring(0, sessionCursorPos);
             sessionSpace = (tBefore && !tBefore.endsWith(' ') && !tBefore.endsWith('\n')) ? ' ' : '';
             currentWebkitText = "";
-            audioChunks = [];
 
-            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
-            let keys = [settings.groq1, settings.groq2, settings.groq3].filter(k=>k);
+            let keys = groqApiKeys;
             isGroqActive = keys.length > 0;
 
             if(isGroqActive) {
                 try {
                     let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) audioChunks.push(e.data); };
+                    mediaRecorder.chunks = [];
+                    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) e.target.chunks.push(e.data); };
                     mediaRecorder.start();
                 } catch(err) {
                     console.error("Mic access denied", err);
@@ -1143,19 +1159,23 @@
             let savedTargetId = activeInputId;
             let savedWebkitText = currentWebkitText;
             let savedSessionSpace = sessionSpace;
+            let wasForceStopped = forceStopMic; 
             
             activeInputId = null; 
             stopListeningUI(); 
+            isProcessing = true; 
+            
             try{ recognition.stop(); }catch(e){}
             
             if(isGroqActive && mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.onstop = async () => {
-                    let blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    audioChunks = [];
-                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                let mr = mediaRecorder;
+                mr.onstop = async () => {
+                    let blob = new Blob(mr.chunks, { type: 'audio/webm' });
+                    mr.stream.getTracks().forEach(track => track.stop());
                     
-                    if (!savedWebkitText.trim()) {
-                        if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId) startListening(savedTargetId);
+                    if (blob.size < 100) {
+                        isProcessing = false;
+                        if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId && !wasForceStopped) startListening(savedTargetId);
                         return;
                     }
 
@@ -1175,7 +1195,7 @@
                                 let textToReplace = savedSessionSpace + savedWebkitText;
                                 let lastIndex = currentVal.lastIndexOf(textToReplace);
                                 
-                                if (lastIndex !== -1) {
+                                if (savedWebkitText && lastIndex !== -1) {
                                     el.value = currentVal.substring(0, lastIndex) + savedSessionSpace + groqText + currentVal.substring(lastIndex + textToReplace.length);
                                 } else {
                                     el.value = currentVal + savedSessionSpace + groqText;
@@ -1190,17 +1210,17 @@
                             if(savedTargetId === 'medManagerSearch') renderMedManagerList();
                             if(savedTargetId === 'reviewSearch') renderReviewSearch();
                         }
-                    } else {
-                        showToast("❌ AI Processing Failed. Reverted to basic dictation.", "error");
                     }
                     
-                    if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId) {
+                    isProcessing = false;
+                    if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId && !wasForceStopped && !forceStopMic) {
                         startListening(savedTargetId);
                     }
                 };
-                mediaRecorder.stop();
+                mr.stop();
             } else {
-                if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId) {
+                isProcessing = false;
+                if(isAutoMicOn && document.activeElement && document.activeElement.id === savedTargetId && !wasForceStopped && !forceStopMic) {
                     startListening(savedTargetId);
                 }
             }
@@ -1212,7 +1232,8 @@
             const el = document.getElementById(id); if(!el)return;
             
             el.addEventListener('focus', (e) => { 
-                if(isAutoMicOn) startListening(id); 
+                forceStopMic = false; 
+                if(isAutoMicOn && activeInputId !== id) startListening(id); 
                 else if (!KEEP_TEXT_MICS.includes(id)) el.select();
             });
             
@@ -1220,7 +1241,6 @@
                 if (activeInputId === id) { 
                     sessionStartText = el.value;
                     sessionCursorPos = el.selectionStart;
-                    if(mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
                 }
             });
             el.addEventListener('keyup', () => {
@@ -1230,7 +1250,9 @@
                 }
             });
 
-            el.addEventListener('blur', (e) => { setTimeout(() => { if(document.activeElement!==el) stopListening(); }, 200); });
+            el.addEventListener('blur', (e) => { 
+                setTimeout(() => { if(document.activeElement!==el) stopListening(); }, 200); 
+            });
         }
 
         window.toggleHistory = function() {
@@ -1443,9 +1465,10 @@
             document.getElementById('regForm').onsubmit = async (e) => { e.preventDefault(); await registerPatient(); };
             document.getElementById('btnAddDrug').onclick = addDrugRow;
             document.getElementById('btnFinish').onclick = finishConsultation;
+            document.getElementById('btnPrint').onclick = saveAndPrint;
             document.getElementById('reviewSearch').onkeyup = renderReviewSearch;
+            document.getElementById('btnToggleHistory').onclick = toggleHistory;
         }
-        
         window.switchPage = function(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(page + 'Page').classList.add('active');
@@ -1457,6 +1480,7 @@
             }
         }
 
+        // --- NEW EDIT PATIENT LOGIC ---
         window.openEditPatientModal = (id) => {
             const p = allPatients.find(x => x.id === id);
             if(!p) return;
@@ -1584,8 +1608,16 @@
                 container.appendChild(div);
             });
         }
+
+        const getDrugValue = (rid, slot, type) => {
+            if (type === 'SYP') {
+                const cb = document.querySelector(`input[name="syp-${slot}-${rid}"]:checked`);
+                return cb ? cb.value : '0';
+            } else {
+                return document.getElementById(`${slot}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${slot}-${rid}`).value) || 0;
+            }
+        };
         
-        // === SAVE DRAFT FUNCTION ===
         window.saveDraft = async () => {
             if(!currentPatient) return;
             const btn = document.querySelector('button[onclick="saveDraft()"]');
@@ -1623,11 +1655,9 @@
                 const inp = document.getElementById(`str-input-${rid}`);
                 let str = (sel && sel.style.display !== 'none') ? sel.value : (inp ? inp.value : '');
                 
-                const getVal = (s) => document.getElementById(`${s}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${s}-${rid}`).value) || 0;
-                
                 drugs.push({ 
                     name, strength: str, type, 
-                    m: getVal('m'), a: getVal('a'), n: getVal('n'), 
+                    m: getDrugValue(rid, 'm', type), a: getDrugValue(rid, 'a', type), n: getDrugValue(rid, 'n', type), 
                     t: document.getElementById(`t-${rid}`).value,
                     preset: document.getElementById(`d-preset-${rid}`)?.value || '',
                     manualDNum: document.getElementById(`d-num-${rid}`)?.value || '',
@@ -1652,10 +1682,10 @@
             }
         };
 
-        // === CLEAR WORKSPACE FUNCTION ===
-        window.clearWorkspace = () => {
-            if(!confirm("Are you sure you want to clear all current fields?")) return;
+        window.clearWorkspace = async () => {
+            if(!currentPatient) return;
             
+            // 1. Clear UI
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = ''; 
             
@@ -1667,10 +1697,20 @@
             
             document.getElementById('drugListContainer').innerHTML = ''; 
             addDrugRow(); 
-            showToast("Fields Cleared", "success");
+
+            // 2. Clear from Database
+            try {
+                await updateDoc(doc(db, "patients", currentPatient.id), { 
+                    draft: deleteField() 
+                });
+                currentPatient.draft = null; 
+                showToast("Fields and Draft Cleared", "success");
+            } catch(e) {
+                console.error(e);
+                showToast("Fields cleared, but error deleting cloud draft", "error");
+            }
         };
 
-        // === MODIFIED SELECT PATIENT FUNCTION ===
         window.selectPatient = function(p) {
             currentPatient = p; document.getElementById('workspace').style.display = 'block';
             document.getElementById('pNameDisplay').innerText = p.name; 
@@ -1721,7 +1761,7 @@
                         
                         document.getElementById(`name-${rid}`).value = d.name;
                         
-                        // Load Type
+                        // Load Type FIRST to setup UI before setting values
                         if (d.type) {
                             const typeLower = d.type.toLowerCase();
                             const el = document.getElementById(`type-${typeLower}-${rid}`);
@@ -1734,12 +1774,19 @@
                             document.getElementById(`str-input-${rid}`).value = d.strength;
                         }
 
-                        // Set dose values/checkboxes
+                        // Set dose values/checkboxes accurately
                         ['m', 'a', 'n'].forEach(slot => {
                             const val = d[slot];
                             if(val !== undefined) {
-                                document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','2','3'].includes(String(val)));
-                                document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
+                                if (d.type === 'SYP') {
+                                    // First clear defaults
+                                    document.querySelectorAll(`input[name="syp-${slot}-${rid}"]`).forEach(c => c.checked = false);
+                                    const cb = document.querySelector(`input[name="syp-${slot}-${rid}"][value="${val}"]`);
+                                    if(cb) cb.checked = true;
+                                } else {
+                                    document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','2','3'].includes(String(val)));
+                                    document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
+                                }
                             }
                         });
 
@@ -1831,8 +1878,9 @@
                 let str = (sel.style.display !== 'none') ? sel.value : inp.value;
                 if(!str && settings.medStr === 'compulsory') { isValid = false; showToast("Select Strength for " + name, "error"); return; }
                 
-                const getVal = (s) => document.getElementById(`${s}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${s}-${rid}`).value);
-                const m=getVal('m'), a=getVal('a'), n=getVal('n');
+                const m = getDrugValue(rid, 'm', type);
+                const a = getDrugValue(rid, 'a', type);
+                const n = getDrugValue(rid, 'n', type);
                 
                 const total = document.getElementById(`t-${rid}`).value;
                 if((total == 0 || total === "Error") && settings.medDur === 'compulsory') { isValid = false; showToast("Check duration for " + name, "error"); return; }
@@ -1902,7 +1950,7 @@
                     rxWrapper.style.display = 'block';
                     const tbody = document.getElementById('printTableBody'); tbody.innerHTML = '';
                     drugs.forEach((d, i) => {
-                        const fmt = (v) => v==0.5 ? '½' : v;
+                        const fmt = (v) => v==0.5 ? '½' : (v==='0'||v===0 ? '-' : v);
                         
                         let strHtml = settings.medStr === 'hidden' ? '' : `<span class="print-col-str"> <small>${d.strength||''}</small></span>`;
                         let mHtml = settings.medM === 'hidden' ? '' : `<td class="print-col-m">${fmt(d.m)}</td>`;
@@ -1934,12 +1982,38 @@
         window.addDrugRow = addDrugRow;
         window.calculateTotal = calculateTotal;
         window.updateStrengths = (id) => handleMedicineInput(id);
-        window.handleTypeCheck = (rid, type) => { ['tab','syp','cap'].forEach(t => { if(t!==type) document.getElementById(`type-${t}-${rid}`).checked=false; }); };
+        
+        // Handles type change and UI swap
+        window.handleTypeCheck = (rid, type) => { 
+            ['tab','syp','cap'].forEach(t => { 
+                const cb = document.getElementById(`type-${t}-${rid}`);
+                if (cb && t !== type) cb.checked = false; 
+            }); 
+            
+            const isSyp = type === 'syp';
+            ['m', 'a', 'n'].forEach(slot => {
+                document.getElementById(`dose-def-${slot}-${rid}`).style.display = isSyp ? 'none' : 'flex';
+                document.getElementById(`dose-syp-${slot}-${rid}`).style.display = isSyp ? 'flex' : 'none';
+            });
+            calculateTotal(rid);
+        };
+        
         window.handleDoseInput = (rid, slot, src) => { 
             const d=document.getElementById(`${slot}-${rid}`), c=document.getElementById(`${slot}-chk-${rid}`);
             if(src==='dropdown') { if(d.value!=='0') c.checked=false; } else if(c.checked) d.value='0';
             calculateTotal(rid);
         };
+        
+        // Deselect siblings in the syrup checkbox group
+        window.handleSypChk = (rid, slot, elem) => {
+            if(elem.checked) {
+                document.querySelectorAll(`input[name="syp-${slot}-${rid}"]`).forEach(cb => {
+                    if(cb !== elem) cb.checked = false;
+                });
+            }
+            calculateTotal(rid);
+        };
+
         window.handleDurationChange = (rid) => { 
             document.getElementById(`d-manual-container-${rid}`).style.display = (document.getElementById(`d-preset-${rid}`).value==='manual') ? 'flex' : 'none';
             calculateTotal(rid);
@@ -1970,7 +2044,12 @@
                         <div id="med-dropdown-${rowCount}" class="custom-dropdown"></div>
                     </div>
                     <div id="missing-alert-${rowCount}"></div>
-                <div class="form-check-group"><label class="form-check-label"><input type="checkbox" id="type-tab-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'tab')" checked> TAB</label><label class="form-check-label"><input type="checkbox" id="type-syp-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'syp')"> Syp</label><label class="form-check-label"><input type="checkbox" id="type-cap-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'cap')"> Cap</label></div></div>
+                <div class="form-check-group">
+                    <label class="form-check-label"><input type="checkbox" id="type-tab-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'tab')" checked> TAB</label>
+                    <label class="form-check-label"><input type="checkbox" id="type-syp-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'syp')"> Syp</label>
+                    <label class="form-check-label"><input type="checkbox" id="type-cap-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'cap')"> Cap</label>
+                </div></div>
+                
                 <div class="col-weight">
                     <label>Strength</label>
                     <select id="str-select-${rowCount}" onchange="handleStrengthChange(${rowCount})"><option value="">--</option></select>
@@ -1979,9 +2058,43 @@
                         <button class="btn btn-red btn-sm" style="padding:2px 6px;" onclick="toggleStrengthMode(${rowCount}, 'select')">✕</button>
                     </div>
                 </div>
-                <div class="col-small col-m"><label>M</label><div class="dose-input-group"><select id="m-${rowCount}" onchange="handleDoseInput(${rowCount},'m','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="m-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'m','check')" checked></label></div></div>
-                <div class="col-small col-a"><label>A</label><div class="dose-input-group"><select id="a-${rowCount}" onchange="handleDoseInput(${rowCount},'a','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="a-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'a','check')"></label></div></div>
-                <div class="col-small col-n"><label>N</label><div class="dose-input-group"><select id="n-${rowCount}" onchange="handleDoseInput(${rowCount},'n','dropdown')">${doseOpts}</select><label class="checkbox-label"><input type="checkbox" id="n-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'n','check')" checked></label></div></div>
+                
+                <div class="col-small col-m"><label>M</label>
+                    <div id="dose-def-m-${rowCount}" class="dose-input-group">
+                        <select id="m-${rowCount}" onchange="handleDoseInput(${rowCount},'m','dropdown')">${doseOpts}</select>
+                        <label class="checkbox-label"><input type="checkbox" id="m-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'m','check')" checked></label>
+                    </div>
+                    <div id="dose-syp-m-${rowCount}" class="syp-col-group">
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2 ml" onchange="handleSypChk(${rowCount}, 'm', this)"> 2ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2.5 ml" onchange="handleSypChk(${rowCount}, 'm', this)" checked> 2.5ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="5 ml" onchange="handleSypChk(${rowCount}, 'm', this)"> 5ml</label>
+                    </div>
+                </div>
+                
+                <div class="col-small col-a"><label>A</label>
+                    <div id="dose-def-a-${rowCount}" class="dose-input-group">
+                        <select id="a-${rowCount}" onchange="handleDoseInput(${rowCount},'a','dropdown')">${doseOpts}</select>
+                        <label class="checkbox-label"><input type="checkbox" id="a-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'a','check')"></label>
+                    </div>
+                    <div id="dose-syp-a-${rowCount}" class="syp-col-group">
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2 ml" onchange="handleSypChk(${rowCount}, 'a', this)"> 2ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2.5 ml" onchange="handleSypChk(${rowCount}, 'a', this)"> 2.5ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="5 ml" onchange="handleSypChk(${rowCount}, 'a', this)"> 5ml</label>
+                    </div>
+                </div>
+                
+                <div class="col-small col-n"><label>N</label>
+                    <div id="dose-def-n-${rowCount}" class="dose-input-group">
+                        <select id="n-${rowCount}" onchange="handleDoseInput(${rowCount},'n','dropdown')">${doseOpts}</select>
+                        <label class="checkbox-label"><input type="checkbox" id="n-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'n','check')" checked></label>
+                    </div>
+                    <div id="dose-syp-n-${rowCount}" class="syp-col-group">
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2 ml" onchange="handleSypChk(${rowCount}, 'n', this)"> 2ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2.5 ml" onchange="handleSypChk(${rowCount}, 'n', this)" checked> 2.5ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="5 ml" onchange="handleSypChk(${rowCount}, 'n', this)"> 5ml</label>
+                    </div>
+                </div>
+                
                 <div class="col-days"><label>Duration</label><select id="d-preset-${rowCount}" onchange="handleDurationChange(${rowCount})"><option value="">Select</option><option value="5">5 Days</option><option value="10">10 Days</option><option value="15">15 Days</option><option value="30">1 Month</option><option value="60">2 Months</option><option value="90">3 Months</option><option value="120">4 Months</option><option value="150">5 Months</option><option value="180">6 Months</option><option value="manual">Manual</option></select>
                 <div class="duration-checks"><label class="dur-check-label"><input type="checkbox" id="d-5-${rowCount}" onclick="setDurationChk(${rowCount},5)"> 5d</label><label class="dur-check-label"><input type="checkbox" id="d-10-${rowCount}" onclick="setDurationChk(${rowCount},10)"> 10d</label><label class="dur-check-label"><input type="checkbox" id="d-15-${rowCount}" onclick="setDurationChk(${rowCount},15)"> 15d</label><label class="dur-check-label"><input type="checkbox" id="d-30-${rowCount}" onclick="setDurationChk(${rowCount},30)"> 1m</label></div>
                 <div id="d-manual-container-${rowCount}" style="display:none; margin-top:5px;"><input type="number" id="d-num-${rowCount}" style="width:50px" oninput="calculateTotal(${rowCount})"><select id="d-unit-${rowCount}" onchange="calculateTotal(${rowCount})"><option value="1">Days</option><option value="30">Months</option></select></div></div>
@@ -1993,7 +2106,18 @@
         }
 
         function calculateTotal(rid) {
-            const v=(s)=>document.getElementById(`${s}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${s}-${rid}`).value)||0;
+            const typeEl = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`);
+            const isSyp = typeEl && typeEl.id.split('-')[1] === 'syp';
+
+            const v = (s) => {
+                if(isSyp) {
+                    const cb = document.querySelector(`input[name="syp-${s}-${rid}"]:checked`);
+                    return cb ? parseFloat(cb.value) : 0; 
+                } else {
+                    return document.getElementById(`${s}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${s}-${rid}`).value)||0;
+                }
+            };
+            
             const m=v('m'), a=v('a'), n=v('n');
             let d=0, p=document.getElementById(`d-preset-${rid}`).value;
             if(p==='manual') d=(parseFloat(document.getElementById(`d-num-${rid}`).value)||0) * parseFloat(document.getElementById(`d-unit-${rid}`).value);
@@ -2001,13 +2125,49 @@
             document.getElementById(`t-${rid}`).value = Math.ceil((m+a+n)*d);
         }
 
+        window.resetTemplateForm = () => {
+            document.getElementById('tplEditId').value = '';
+            document.getElementById('tplName').value = '';
+            document.getElementById('tplTypes').value = '';
+            document.getElementById('tplDurations').value = '';
+            document.getElementById('btnSaveTpl').innerText = 'Save Template';
+        };
+
+        window.resetDiagTemplateForm = () => {
+            document.getElementById('diagTplEditId').value = '';
+            document.getElementById('diagTplName').value = '';
+            document.getElementById('diagTplTypes').value = '';
+            document.getElementById('btnSaveDiagTpl').innerText = 'Save Template';
+        };
+
+        window.editTemplate = (id, type) => {
+            if (type === 'clinical') {
+                const t = clinicalTemplates.find(x => x.id === id);
+                if(!t) return;
+                document.getElementById('tplEditId').value = t.id;
+                document.getElementById('tplName').value = t.name || '';
+                document.getElementById('tplTypes').value = (t.subtypes || []).join(', ');
+                document.getElementById('tplDurations').value = (t.durations || []).join(', ');
+                document.getElementById('btnSaveTpl').innerText = "Update Template";
+            } else if (type === 'diag') {
+                const t = diagTemplates.find(x => x.id === id);
+                if(!t) return;
+                document.getElementById('diagTplEditId').value = t.id;
+                document.getElementById('diagTplName').value = t.name || '';
+                document.getElementById('diagTplTypes').value = (t.subtypes || []).join(', ');
+                document.getElementById('btnSaveDiagTpl').innerText = "Update Template";
+            }
+        };
+
         function renderTemplateChips() {
             const container = document.getElementById('templateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
             clinicalTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
         }
+        
         function startTemplateFlow(t) {
             currentTemplateAction = { template: t };
-            const sub = t.subtypes || [], dur = t.durations || [];
+            const sub = (t.subtypes || []).map(s => s ? s.trim() : '').filter(s => s !== '');
+            const dur = (t.durations || []).map(d => d ? d.trim() : '').filter(d => d !== '');
             
             if(sub.length > 0) {
                 openSelectionModal(`Type of ${t.name}`, sub, (s) => { 
@@ -2056,14 +2216,16 @@
             const container = document.getElementById('diagTemplateChipContainer'); const manageBtn = container.querySelector('.template-add-btn'); container.innerHTML = '';
             diagTemplates.forEach(t => { const chip = document.createElement('span'); chip.className = 'template-chip'; chip.innerText = t.name; chip.onclick = () => startDiagTemplateFlow(t); container.appendChild(chip); }); container.appendChild(manageBtn);
         }
+        
         function startDiagTemplateFlow(t) {
-            const sub = t.subtypes || [];
+            const sub = (t.subtypes || []).map(s => s ? s.trim() : '').filter(s => s !== '');
             if(sub.length > 0) {
                 openSelectionModal(`Select ${t.name} Type`, sub, (s) => { finalizeDiagTemplate(s); });
             } else {
                 finalizeDiagTemplate(t.name);
             }
         }
+        
         function finalizeDiagTemplate(text) {
             const area = document.getElementById('provDiagnosis');
             let currentText = area.value.trim();
@@ -2081,23 +2243,68 @@
             document.getElementById('selectionModal').style.display = 'flex';
         }
         
-        window.openTemplateManager = () => document.getElementById('templateManagerModal').style.display = 'flex';
+        window.openTemplateManager = () => { resetTemplateForm(); document.getElementById('templateManagerModal').style.display = 'flex'; };
+        
         window.saveNewTemplate = async () => {
-            const name = document.getElementById('tplName').value, subs = document.getElementById('tplTypes').value.split(','), durs = document.getElementById('tplDurations').value.split(',');
-            if(!name) return; await addDoc(collection(db, "clinicalTemplates"), { name, subtypes: subs, durations: durs });
-            document.getElementById('tplName').value=''; document.getElementById('tplTypes').value=''; document.getElementById('tplDurations').value='';
-        };
-        window.deleteTemplate = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "clinicalTemplates", id)); };
-        function renderTemplateManagerList() { const div = document.getElementById('templateListContainer'); div.innerHTML=''; clinicalTemplates.forEach(t=>{ div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:5px;"><span>${t.name}</span><button class="btn btn-red btn-sm" onclick="deleteTemplate('${t.id}')">Del</button></div>`; }); }
+            const id = document.getElementById('tplEditId').value;
+            const name = document.getElementById('tplName').value.trim();
+            const subs = document.getElementById('tplTypes').value.split(',').map(s=>s.trim()).filter(s=>s);
+            const durs = document.getElementById('tplDurations').value.split(',').map(s=>s.trim()).filter(s=>s);
+            if(!name) return; 
 
-        window.openDiagTemplateManager = () => document.getElementById('diagTemplateManagerModal').style.display = 'flex';
-        window.saveNewDiagTemplate = async () => {
-            const name = document.getElementById('diagTplName').value, subs = document.getElementById('diagTplTypes').value.split(',');
-            if(!name) return; await addDoc(collection(db, "diagnosisTemplates"), { name, subtypes: subs });
-            document.getElementById('diagTplName').value=''; document.getElementById('diagTplTypes').value='';
+            if(id) {
+                await updateDoc(doc(db, "clinicalTemplates", id), { name, subtypes: subs, durations: durs });
+            } else {
+                await addDoc(collection(db, "clinicalTemplates"), { name, subtypes: subs, durations: durs });
+            }
+            resetTemplateForm();
         };
+
+        window.deleteTemplate = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "clinicalTemplates", id)); };
+        
+        function renderTemplateManagerList() { 
+            const div = document.getElementById('templateListContainer'); div.innerHTML=''; 
+            clinicalTemplates.forEach(t=>{ 
+                div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:8px 5px; border-bottom:1px solid #eee; align-items:center;">
+                    <span style="font-weight:bold;">${t.name}</span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn btn-secondary btn-sm" onclick="editTemplate('${t.id}', 'clinical')">Edit</button>
+                        <button class="btn btn-red btn-sm" onclick="deleteTemplate('${t.id}')">Del</button>
+                    </div>
+                </div>`; 
+            }); 
+        }
+
+        window.openDiagTemplateManager = () => { resetDiagTemplateForm(); document.getElementById('diagTemplateManagerModal').style.display = 'flex'; };
+        
+        window.saveNewDiagTemplate = async () => {
+            const id = document.getElementById('diagTplEditId').value;
+            const name = document.getElementById('diagTplName').value.trim();
+            const subs = document.getElementById('diagTplTypes').value.split(',').map(s=>s.trim()).filter(s=>s);
+            if(!name) return; 
+
+            if (id) {
+                await updateDoc(doc(db, "diagnosisTemplates", id), { name, subtypes: subs });
+            } else {
+                await addDoc(collection(db, "diagnosisTemplates"), { name, subtypes: subs });
+            }
+            resetDiagTemplateForm();
+        };
+
         window.deleteDiagTemplate = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "diagnosisTemplates", id)); };
-        function renderDiagTemplateManagerList() { const div = document.getElementById('diagTemplateListContainer'); div.innerHTML=''; diagTemplates.forEach(t=>{ div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:5px;"><span>${t.name}</span><button class="btn btn-red btn-sm" onclick="deleteDiagTemplate('${t.id}')">Del</button></div>`; }); }
+        
+        function renderDiagTemplateManagerList() { 
+            const div = document.getElementById('diagTemplateListContainer'); div.innerHTML=''; 
+            diagTemplates.forEach(t=>{ 
+                div.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:8px 5px; border-bottom:1px solid #eee; align-items:center;">
+                    <span style="font-weight:bold;">${t.name}</span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn btn-secondary btn-sm" onclick="editTemplate('${t.id}', 'diag')">Edit</button>
+                        <button class="btn btn-red btn-sm" onclick="deleteDiagTemplate('${t.id}')">Del</button>
+                    </div>
+                </div>`; 
+            }); 
+        }
         
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
