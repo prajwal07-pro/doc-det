@@ -141,7 +141,7 @@
 
         /* --- DRUG ROWS --- */
         .drug-row { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
-        .col-name { flex: 3.5; display: flex; flex-direction: column; gap: 5px; position: relative; } 
+        .col-name { flex: 3.8; display: flex; flex-direction: column; gap: 5px; position: relative; } 
         .col-weight { flex: 1.2; } 
         .col-m, .col-a, .col-n { flex: 1.3; text-align: center; } 
         .col-days { flex: 2; } 
@@ -149,20 +149,20 @@
         .col-action { flex: 0.4; text-align: right; padding-top: 28px; }
         .drug-row label { display: block; font-size: 0.75em; color: #374151; margin-bottom: 4px; }
 
-        .form-check-group { display: flex; gap: 10px; margin-top: 2px; }
+        .form-check-group { display: flex; gap: 10px; margin-top: 2px; align-items: center; flex-wrap: wrap; }
         .form-check-label { display: flex; align-items: center; gap: 4px; font-size: 0.8em; cursor: pointer; color: #000; }
         .form-check-label input { width: auto; margin: 0; }
 
         .dose-input-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .checkbox-label { font-size: 0.8em; cursor: pointer; height: 20px; display: flex; align-items: center; gap: 3px; }
         
-        /* SHARED BUTTON STYLES FOR DURATION & SYRUP */
+        /* SHARED BUTTON STYLES FOR DURATION, SYRUP, AND SPRAY TOTAL */
         .duration-checks { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
         .dur-check-label { font-size: 0.8em; color: #000; display: flex; align-items: center; gap: 4px; cursor: pointer; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #9ca3af; }
         .dur-check-label input { margin: 0; width: auto; }
         
         .syp-col-group { display: none; flex-direction: column; gap: 6px; margin-top: 6px; align-items: center; width: 100%; }
-        .dur-check-label.syp-btn { width: 68px; justify-content: flex-start; padding: 4px 6px; box-sizing: border-box; }
+        .dur-check-label.syp-btn { width: auto; justify-content: flex-start; padding: 5px 10px; box-sizing: border-box; white-space: nowrap; margin: 0 auto; font-size: 0.85em; }
 
         .add-med-btn-inline { font-size: 0.8em; color: #fff; background: var(--primary); padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 5px; display: inline-block; }
 
@@ -1369,6 +1369,45 @@
             if (select.value === 'manual') toggleStrengthMode(rid, 'manual');
         };
 
+        window.showCustomTypeInput = (rid) => {
+            document.getElementById(`add-type-btn-${rid}`).style.display = 'none';
+            document.getElementById(`custom-type-box-${rid}`).style.display = 'flex';
+            document.getElementById(`custom-type-input-${rid}`).focus();
+        };
+
+        window.hideCustomTypeInput = (rid) => {
+            document.getElementById(`add-type-btn-${rid}`).style.display = 'inline-block';
+            document.getElementById(`custom-type-box-${rid}`).style.display = 'none';
+            document.getElementById(`custom-type-input-${rid}`).value = '';
+        };
+
+        window.addCustomType = (rid) => {
+            const input = document.getElementById(`custom-type-input-${rid}`);
+            const newType = input.value;
+            if(!newType || !newType.trim()) return hideCustomTypeInput(rid);
+            
+            const typeStr = newType.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const typeDisplay = newType.trim();
+            
+            const container = document.getElementById(`type-group-${rid}`);
+            const btn = document.getElementById(`add-type-btn-${rid}`);
+            
+            if (!document.getElementById(`type-${typeStr}-${rid}`)) {
+                const lbl = document.createElement('label');
+                lbl.className = 'form-check-label';
+                lbl.innerHTML = `<input type="checkbox" id="type-${typeStr}-${rid}" onclick="handleTypeCheck(${rid}, '${typeStr}')"> ${typeDisplay}`;
+                container.insertBefore(lbl, btn);
+            }
+            
+            hideCustomTypeInput(rid);
+            
+            const cb = document.getElementById(`type-${typeStr}-${rid}`);
+            if(cb) {
+                cb.checked = true;
+                handleTypeCheck(rid, typeStr);
+            }
+        };
+
         window.openAddRowModal = (rid, name) => {
             document.getElementById('uniModalTitle').innerText = "Add Missing Medicine";
             document.getElementById('uniModalName').value = name;
@@ -1480,7 +1519,6 @@
             }
         }
 
-        // --- NEW EDIT PATIENT LOGIC ---
         window.openEditPatientModal = (id) => {
             const p = allPatients.find(x => x.id === id);
             if(!p) return;
@@ -1649,7 +1687,10 @@
                 if(!name) continue;
 
                 const typeEl = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`);
-                const type = typeEl ? typeEl.id.split('-')[1].toUpperCase() : '';
+                let type = '';
+                if(typeEl) {
+                    type = typeEl.parentElement.textContent.trim().toUpperCase();
+                }
                 
                 const sel = document.getElementById(`str-select-${rid}`);
                 const inp = document.getElementById(`str-input-${rid}`);
@@ -1764,7 +1805,17 @@
                         // Load Type FIRST to setup UI before setting values
                         if (d.type) {
                             const typeLower = d.type.toLowerCase();
-                            const el = document.getElementById(`type-${typeLower}-${rid}`);
+                            let el = document.getElementById(`type-${typeLower}-${rid}`);
+                            
+                            if (!el) {
+                                const container = document.getElementById(`type-group-${rid}`);
+                                const btn = document.getElementById(`add-type-btn-${rid}`);
+                                const lbl = document.createElement('label');
+                                lbl.className = 'form-check-label';
+                                lbl.innerHTML = `<input type="checkbox" id="type-${typeLower}-${rid}" onclick="handleTypeCheck(${rid}, '${typeLower}')"> ${d.type}`;
+                                container.insertBefore(lbl, btn);
+                                el = document.getElementById(`type-${typeLower}-${rid}`);
+                            }
                             if(el) { el.checked = true; handleTypeCheck(rid, typeLower); }
                         }
                         
@@ -1779,10 +1830,11 @@
                             const val = d[slot];
                             if(val !== undefined) {
                                 if (d.type === 'SYP') {
-                                    // First clear defaults
                                     document.querySelectorAll(`input[name="syp-${slot}-${rid}"]`).forEach(c => c.checked = false);
-                                    const cb = document.querySelector(`input[name="syp-${slot}-${rid}"][value="${val}"]`);
-                                    if(cb) cb.checked = true;
+                                    if(val !== '0') {
+                                        const cb = document.querySelector(`input[name="syp-${slot}-${rid}"][value="${val}"]`);
+                                        if(cb) cb.checked = true;
+                                    }
                                 } else {
                                     document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','2','3'].includes(String(val)));
                                     document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
@@ -1805,7 +1857,19 @@
                         if (d.d15) document.getElementById(`d-15-${rid}`).checked = true;
                         if (d.d30) document.getElementById(`d-30-${rid}`).checked = true;
 
+                        // Specifically load Spray total correctly
+                        if (d.type === 'SPRAY') {
+                            const sprayCb = document.querySelector(`input[name="spray-t-${rid}"][value="${d.t}"]`);
+                            if (sprayCb) {
+                                document.querySelectorAll(`input[name="spray-t-${rid}"]`).forEach(c=>c.checked=false);
+                                sprayCb.checked = true;
+                            }
+                        }
+
                         calculateTotal(rid);
+                        
+                        // Final override just in case manual edit was made
+                        if(d.t !== undefined && d.t !== null) document.getElementById(`t-${rid}`).value = d.t;
                     });
                 } else {
                     addDrugRow();
@@ -1870,7 +1934,10 @@
                     continue;
                 }
 
-                const type = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`)?.id.split('-')[1].toUpperCase();
+                const typeEl = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`);
+                let type = '';
+                if(typeEl) type = typeEl.parentElement.textContent.trim().toUpperCase();
+                
                 if(!type) { isValid = false; showToast("Select Type for " + name, "error"); row.scrollIntoView(); return; }
                 
                 const sel = document.getElementById(`str-select-${rid}`);
@@ -1883,7 +1950,7 @@
                 const n = getDrugValue(rid, 'n', type);
                 
                 const total = document.getElementById(`t-${rid}`).value;
-                if((total == 0 || total === "Error") && settings.medDur === 'compulsory') { isValid = false; showToast("Check duration for " + name, "error"); return; }
+                if((total == 0 || total === "Error" || total === '') && settings.medDur === 'compulsory') { isValid = false; showToast("Check duration/total for " + name, "error"); return; }
                 
                 drugs.push({ name, strength: str, type, m, a, n, t: total });
 
@@ -1983,18 +2050,40 @@
         window.calculateTotal = calculateTotal;
         window.updateStrengths = (id) => handleMedicineInput(id);
         
-        // Handles type change and UI swap
         window.handleTypeCheck = (rid, type) => { 
-            ['tab','syp','cap'].forEach(t => { 
-                const cb = document.getElementById(`type-${t}-${rid}`);
-                if (cb && t !== type) cb.checked = false; 
-            }); 
+            const group = document.getElementById(`type-group-${rid}`);
+            const checkboxes = group.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                if (cb.id !== `type-${type}-${rid}`) cb.checked = false;
+            });
             
             const isSyp = type === 'syp';
             ['m', 'a', 'n'].forEach(slot => {
                 document.getElementById(`dose-def-${slot}-${rid}`).style.display = isSyp ? 'none' : 'flex';
                 document.getElementById(`dose-syp-${slot}-${rid}`).style.display = isSyp ? 'flex' : 'none';
             });
+            
+            const isSpray = type === 'spray';
+            const sprayGrp = document.getElementById(`spray-total-group-${rid}`);
+            if(sprayGrp) sprayGrp.style.display = isSpray ? 'flex' : 'none';
+            
+            if (isSpray) {
+                const cb1 = document.querySelector(`input[name="spray-t-${rid}"][value="1"]`);
+                if(cb1) {
+                    cb1.checked = true;
+                    window.setSprayTotal(rid, 1, cb1);
+                }
+            } else if (isSyp) {
+                document.querySelectorAll(`input[name="syp-m-${rid}"]`).forEach(c=>c.checked=false);
+                document.querySelectorAll(`input[name="syp-a-${rid}"]`).forEach(c=>c.checked=false);
+                document.querySelectorAll(`input[name="syp-n-${rid}"]`).forEach(c=>c.checked=false);
+                
+                const mDef = document.querySelector(`input[name="syp-m-${rid}"][value="2.5 ml"]`);
+                if(mDef) mDef.checked = true;
+                const nDef = document.querySelector(`input[name="syp-n-${rid}"][value="2.5 ml"]`);
+                if(nDef) nDef.checked = true;
+            }
+            
             calculateTotal(rid);
         };
         
@@ -2004,14 +2093,27 @@
             calculateTotal(rid);
         };
         
-        // Deselect siblings in the syrup checkbox group
         window.handleSypChk = (rid, slot, elem) => {
-            if(elem.checked) {
-                document.querySelectorAll(`input[name="syp-${slot}-${rid}"]`).forEach(cb => {
-                    if(cb !== elem) cb.checked = false;
-                });
+            if(!elem.checked) {
+                elem.checked = true; 
+                return;
             }
+            document.querySelectorAll(`input[name="syp-${slot}-${rid}"]`).forEach(cb => {
+                if(cb !== elem) cb.checked = false;
+            });
             calculateTotal(rid);
+        };
+
+        window.setSprayTotal = (rid, val, elem) => {
+            if (elem && !elem.checked) {
+                elem.checked = true; 
+                return;
+            }
+            document.querySelectorAll(`input[name="spray-t-${rid}"]`).forEach(cb => {
+                if (parseInt(cb.value) !== val) cb.checked = false;
+                else cb.checked = true; 
+            });
+            document.getElementById(`t-${rid}`).value = val;
         };
 
         window.handleDurationChange = (rid) => { 
@@ -2044,10 +2146,17 @@
                         <div id="med-dropdown-${rowCount}" class="custom-dropdown"></div>
                     </div>
                     <div id="missing-alert-${rowCount}"></div>
-                <div class="form-check-group">
+                <div class="form-check-group" id="type-group-${rowCount}">
                     <label class="form-check-label"><input type="checkbox" id="type-tab-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'tab')" checked> TAB</label>
                     <label class="form-check-label"><input type="checkbox" id="type-syp-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'syp')"> Syp</label>
                     <label class="form-check-label"><input type="checkbox" id="type-cap-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'cap')"> Cap</label>
+                    <label class="form-check-label"><input type="checkbox" id="type-spray-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'spray')"> Spray</label>
+                    <span class="add-med-btn-inline" id="add-type-btn-${rowCount}" style="margin-top:0; padding: 2px 6px; font-size:0.85em; background:#6b7280;" onclick="showCustomTypeInput(${rowCount})" title="Add custom type">+ Add</span>
+                    <div id="custom-type-box-${rowCount}" style="display:none; align-items:center; gap:5px;">
+                        <input type="text" id="custom-type-input-${rowCount}" placeholder="Type..." style="width:70px; padding:2px 5px; font-size:0.85em;">
+                        <button class="btn btn-green btn-sm" style="padding:2px 6px;" onclick="addCustomType(${rowCount})">✓</button>
+                        <button class="btn btn-red btn-sm" style="padding:2px 6px;" onclick="hideCustomTypeInput(${rowCount})">✕</button>
+                    </div>
                 </div></div>
                 
                 <div class="col-weight">
@@ -2065,9 +2174,9 @@
                         <label class="checkbox-label"><input type="checkbox" id="m-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'m','check')" checked></label>
                     </div>
                     <div id="dose-syp-m-${rowCount}" class="syp-col-group">
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2 ml" onchange="handleSypChk(${rowCount}, 'm', this)"> 2ml</label>
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2.5 ml" onchange="handleSypChk(${rowCount}, 'm', this)" checked> 2.5ml</label>
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="5 ml" onchange="handleSypChk(${rowCount}, 'm', this)"> 5ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2 ml" onclick="handleSypChk(${rowCount}, 'm', this)"> 2 ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2.5 ml" onclick="handleSypChk(${rowCount}, 'm', this)"> 2.5 ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="5 ml" onclick="handleSypChk(${rowCount}, 'm', this)"> 5 ml</label>
                     </div>
                 </div>
                 
@@ -2077,9 +2186,9 @@
                         <label class="checkbox-label"><input type="checkbox" id="a-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'a','check')"></label>
                     </div>
                     <div id="dose-syp-a-${rowCount}" class="syp-col-group">
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2 ml" onchange="handleSypChk(${rowCount}, 'a', this)"> 2ml</label>
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2.5 ml" onchange="handleSypChk(${rowCount}, 'a', this)"> 2.5ml</label>
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="5 ml" onchange="handleSypChk(${rowCount}, 'a', this)"> 5ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2 ml" onclick="handleSypChk(${rowCount}, 'a', this)"> 2 ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2.5 ml" onclick="handleSypChk(${rowCount}, 'a', this)"> 2.5 ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="5 ml" onclick="handleSypChk(${rowCount}, 'a', this)"> 5 ml</label>
                     </div>
                 </div>
                 
@@ -2089,16 +2198,26 @@
                         <label class="checkbox-label"><input type="checkbox" id="n-chk-${rowCount}" onchange="handleDoseInput(${rowCount},'n','check')" checked></label>
                     </div>
                     <div id="dose-syp-n-${rowCount}" class="syp-col-group">
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2 ml" onchange="handleSypChk(${rowCount}, 'n', this)"> 2ml</label>
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2.5 ml" onchange="handleSypChk(${rowCount}, 'n', this)" checked> 2.5ml</label>
-                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="5 ml" onchange="handleSypChk(${rowCount}, 'n', this)"> 5ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2 ml" onclick="handleSypChk(${rowCount}, 'n', this)"> 2 ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2.5 ml" onclick="handleSypChk(${rowCount}, 'n', this)"> 2.5 ml</label>
+                        <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="5 ml" onclick="handleSypChk(${rowCount}, 'n', this)"> 5 ml</label>
                     </div>
                 </div>
                 
                 <div class="col-days"><label>Duration</label><select id="d-preset-${rowCount}" onchange="handleDurationChange(${rowCount})"><option value="">Select</option><option value="5">5 Days</option><option value="10">10 Days</option><option value="15">15 Days</option><option value="30">1 Month</option><option value="60">2 Months</option><option value="90">3 Months</option><option value="120">4 Months</option><option value="150">5 Months</option><option value="180">6 Months</option><option value="manual">Manual</option></select>
                 <div class="duration-checks"><label class="dur-check-label"><input type="checkbox" id="d-5-${rowCount}" onclick="setDurationChk(${rowCount},5)"> 5d</label><label class="dur-check-label"><input type="checkbox" id="d-10-${rowCount}" onclick="setDurationChk(${rowCount},10)"> 10d</label><label class="dur-check-label"><input type="checkbox" id="d-15-${rowCount}" onclick="setDurationChk(${rowCount},15)"> 15d</label><label class="dur-check-label"><input type="checkbox" id="d-30-${rowCount}" onclick="setDurationChk(${rowCount},30)"> 1m</label></div>
                 <div id="d-manual-container-${rowCount}" style="display:none; margin-top:5px;"><input type="number" id="d-num-${rowCount}" style="width:50px" oninput="calculateTotal(${rowCount})"><select id="d-unit-${rowCount}" onchange="calculateTotal(${rowCount})"><option value="1">Days</option><option value="30">Months</option></select></div></div>
-                <div class="col-total"><label>Total</label><input type="text" id="t-${rowCount}" readonly style="background:#eee"></div>
+                
+                <div class="col-total">
+                    <label>Total</label>
+                    <input type="text" id="t-${rowCount}" style="width:100%;">
+                    <div id="spray-total-group-${rowCount}" style="display:none; flex-direction:row; gap:8px; margin-top:6px; flex-wrap:wrap;">
+                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="spray-t-${rowCount}" value="1" onclick="setSprayTotal(${rowCount}, 1, this)"> 1</label>
+                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="spray-t-${rowCount}" value="2" onclick="setSprayTotal(${rowCount}, 2, this)"> 2</label>
+                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="spray-t-${rowCount}" value="3" onclick="setSprayTotal(${rowCount}, 3, this)"> 3</label>
+                    </div>
+                </div>
+                
                 <div class="col-action"><button class="btn btn-red btn-sm" onclick="document.getElementById('row-${rowCount}').remove()">X</button></div>
             `;
             container.appendChild(div); attachMicListeners(`name-${rowCount}`);
@@ -2106,8 +2225,17 @@
         }
 
         function calculateTotal(rid) {
-            const typeEl = document.querySelector(`input[id^="type-"][id$="-${rid}"]:checked`);
-            const isSyp = typeEl && typeEl.id.split('-')[1] === 'syp';
+            const group = document.getElementById(`type-group-${rid}`);
+            const activeType = group.querySelector('input[type="checkbox"]:checked');
+            const typeStr = activeType ? activeType.id.split('-')[1] : '';
+            const isSyp = typeStr === 'syp';
+            const isSpray = typeStr === 'spray';
+
+            if (isSpray) {
+                const sprayCb = document.querySelector(`input[name="spray-t-${rid}"]:checked`);
+                if (sprayCb) document.getElementById(`t-${rid}`).value = sprayCb.value;
+                return; 
+            }
 
             const v = (s) => {
                 if(isSyp) {
@@ -2122,6 +2250,7 @@
             let d=0, p=document.getElementById(`d-preset-${rid}`).value;
             if(p==='manual') d=(parseFloat(document.getElementById(`d-num-${rid}`).value)||0) * parseFloat(document.getElementById(`d-unit-${rid}`).value);
             else d=parseFloat(p)||0;
+            
             document.getElementById(`t-${rid}`).value = Math.ceil((m+a+n)*d);
         }
 
@@ -2220,7 +2349,7 @@
         function startDiagTemplateFlow(t) {
             const sub = (t.subtypes || []).map(s => s ? s.trim() : '').filter(s => s !== '');
             if(sub.length > 0) {
-                openSelectionModal(`Select ${t.name} Type`, sub, (s) => { finalizeDiagTemplate(s); });
+                openSelectionModal(`Select ${t.name} Type`, sub, (s) => { finalizeDiagTemplate(t.name + " (" + s + ")"); });
             } else {
                 finalizeDiagTemplate(t.name);
             }
