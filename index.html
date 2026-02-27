@@ -141,7 +141,7 @@
 
         /* --- DRUG ROWS --- */
         .drug-row { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
-        .col-name { flex: 3.8; display: flex; flex-direction: column; gap: 5px; position: relative; } 
+        .col-name { flex: 4.2; display: flex; flex-direction: column; gap: 5px; position: relative; } 
         .col-weight { flex: 1.2; } 
         .col-m, .col-a, .col-n { flex: 1.3; text-align: center; } 
         .col-days { flex: 2; } 
@@ -156,7 +156,7 @@
         .dose-input-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .checkbox-label { font-size: 0.8em; cursor: pointer; height: 20px; display: flex; align-items: center; gap: 3px; }
         
-        /* SHARED BUTTON STYLES FOR DURATION, SYRUP, AND SPRAY TOTAL */
+        /* SHARED BUTTON STYLES FOR DURATION, SYRUP, AND FIXED TOTALS */
         .duration-checks { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
         .dur-check-label { font-size: 0.8em; color: #000; display: flex; align-items: center; gap: 4px; cursor: pointer; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #9ca3af; }
         .dur-check-label input { margin: 0; width: auto; }
@@ -1651,6 +1651,8 @@
             if (type === 'SYP') {
                 const cb = document.querySelector(`input[name="syp-${slot}-${rid}"]:checked`);
                 return cb ? cb.value : '0';
+            } else if (type === 'SPRAY' || type === 'OINTMENT') {
+                return document.getElementById(`tick-${slot}-${rid}`)?.checked ? 1 : 0;
             } else {
                 return document.getElementById(`${slot}-chk-${rid}`).checked ? 1 : parseFloat(document.getElementById(`${slot}-${rid}`).value) || 0;
             }
@@ -1726,7 +1728,6 @@
         window.clearWorkspace = async () => {
             if(!currentPatient) return;
             
-            // 1. Clear UI
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = ''; 
             
@@ -1739,7 +1740,6 @@
             document.getElementById('drugListContainer').innerHTML = ''; 
             addDrugRow(); 
 
-            // 2. Clear from Database
             try {
                 await updateDoc(doc(db, "patients", currentPatient.id), { 
                     draft: deleteField() 
@@ -1758,7 +1758,6 @@
             document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | ${p.phone}`;
             renderDoctorQueue(); 
             
-            // 1. Wipe current workspace blank
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = ''; 
             document.getElementById('customExamFields').innerHTML = ''; 
@@ -1768,7 +1767,6 @@
             });
             document.getElementById('drugListContainer').innerHTML = ''; 
 
-            // 2. Load Draft if it exists
             if (p.draft) {
                 document.getElementById('provDiagnosis').value = p.draft.provDiagnosis || '';
                 document.getElementById('docDetails').value = p.draft.notes || '';
@@ -1802,7 +1800,6 @@
                         
                         document.getElementById(`name-${rid}`).value = d.name;
                         
-                        // Load Type FIRST to setup UI before setting values
                         if (d.type) {
                             const typeLower = d.type.toLowerCase();
                             let el = document.getElementById(`type-${typeLower}-${rid}`);
@@ -1819,13 +1816,11 @@
                             if(el) { el.checked = true; handleTypeCheck(rid, typeLower); }
                         }
                         
-                        // Load Strength
                         if (d.strength) {
                             toggleStrengthMode(rid, 'manual');
                             document.getElementById(`str-input-${rid}`).value = d.strength;
                         }
 
-                        // Set dose values/checkboxes accurately
                         ['m', 'a', 'n'].forEach(slot => {
                             const val = d[slot];
                             if(val !== undefined) {
@@ -1835,6 +1830,9 @@
                                         const cb = document.querySelector(`input[name="syp-${slot}-${rid}"][value="${val}"]`);
                                         if(cb) cb.checked = true;
                                     }
+                                } else if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
+                                    const tickEl = document.getElementById(`tick-${slot}-${rid}`);
+                                    if (tickEl) tickEl.checked = (val === 1);
                                 } else {
                                     document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','2','3'].includes(String(val)));
                                     document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
@@ -1842,7 +1840,6 @@
                             }
                         });
 
-                        // Set Durations
                         if (d.preset) {
                             document.getElementById(`d-preset-${rid}`).value = d.preset;
                             handleDurationChange(rid);
@@ -1857,18 +1854,16 @@
                         if (d.d15) document.getElementById(`d-15-${rid}`).checked = true;
                         if (d.d30) document.getElementById(`d-30-${rid}`).checked = true;
 
-                        // Specifically load Spray total correctly
-                        if (d.type === 'SPRAY') {
-                            const sprayCb = document.querySelector(`input[name="spray-t-${rid}"][value="${d.t}"]`);
-                            if (sprayCb) {
-                                document.querySelectorAll(`input[name="spray-t-${rid}"]`).forEach(c=>c.checked=false);
-                                sprayCb.checked = true;
+                        if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
+                            const fixedCb = document.querySelector(`input[name="fixed-t-${rid}"][value="${d.t}"]`);
+                            if (fixedCb) {
+                                document.querySelectorAll(`input[name="fixed-t-${rid}"]`).forEach(c=>c.checked=false);
+                                fixedCb.checked = true;
                             }
                         }
 
                         calculateTotal(rid);
                         
-                        // Final override just in case manual edit was made
                         if(d.t !== undefined && d.t !== null) document.getElementById(`t-${rid}`).value = d.t;
                     });
                 } else {
@@ -1878,7 +1873,6 @@
                 addDrugRow(); 
             }
 
-            // Adjust heights of auto-expanding text areas loaded with draft text
             setTimeout(() => {
                 document.querySelectorAll('.auto-expand').forEach(el => {
                     el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
@@ -2017,15 +2011,30 @@
                     rxWrapper.style.display = 'block';
                     const tbody = document.getElementById('printTableBody'); tbody.innerHTML = '';
                     drugs.forEach((d, i) => {
-                        const fmt = (v) => v==0.5 ? '½' : (v==='0'||v===0 ? '-' : v);
+                        let mHtml, aHtml, nHtml;
+                        if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
+                            const fmtTick = (v) => v === 1 ? '✔' : '-';
+                            mHtml = settings.medM === 'hidden' ? '' : `<td class="print-col-m">${fmtTick(d.m)}</td>`;
+                            aHtml = settings.medA === 'hidden' ? '' : `<td class="print-col-a">${fmtTick(d.a)}</td>`;
+                            nHtml = settings.medN === 'hidden' ? '' : `<td class="print-col-n">${fmtTick(d.n)}</td>`;
+                        } else {
+                            const fmt = (v) => v==0.5 ? '½' : (v==='0'||v===0 ? '-' : v);
+                            mHtml = settings.medM === 'hidden' ? '' : `<td class="print-col-m">${fmt(d.m)}</td>`;
+                            aHtml = settings.medA === 'hidden' ? '' : `<td class="print-col-a">${fmt(d.a)}</td>`;
+                            nHtml = settings.medN === 'hidden' ? '' : `<td class="print-col-n">${fmt(d.n)}</td>`;
+                        }
                         
                         let strHtml = settings.medStr === 'hidden' ? '' : `<span class="print-col-str"> <small>${d.strength||''}</small></span>`;
-                        let mHtml = settings.medM === 'hidden' ? '' : `<td class="print-col-m">${fmt(d.m)}</td>`;
-                        let aHtml = settings.medA === 'hidden' ? '' : `<td class="print-col-a">${fmt(d.a)}</td>`;
-                        let nHtml = settings.medN === 'hidden' ? '' : `<td class="print-col-n">${fmt(d.n)}</td>`;
                         let tHtml = settings.medDur === 'hidden' ? '' : `<td>${d.t}</td>`;
 
-                        tbody.innerHTML += `<tr><td>${i+1}</td><td class="drug-name-cell">${d.type} ${d.name}${strHtml}</td>${mHtml}${aHtml}${nHtml}${tHtml}</tr>`;
+                        let medNameDisplay = '';
+                        if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
+                            medNameDisplay = `${d.name} ${d.type}`;
+                        } else {
+                            medNameDisplay = `${d.type} ${d.name}`;
+                        }
+
+                        tbody.innerHTML += `<tr><td>${i+1}</td><td class="drug-name-cell">${medNameDisplay}${strHtml}</td>${mHtml}${aHtml}${nHtml}${tHtml}</tr>`;
                     });
                 } else {
                     rxWrapper.style.display = 'none';
@@ -2058,20 +2067,26 @@
             });
             
             const isSyp = type === 'syp';
+            const isTickType = type === 'spray' || type === 'ointment';
+
             ['m', 'a', 'n'].forEach(slot => {
-                document.getElementById(`dose-def-${slot}-${rid}`).style.display = isSyp ? 'none' : 'flex';
+                document.getElementById(`dose-def-${slot}-${rid}`).style.display = (isSyp || isTickType) ? 'none' : 'flex';
                 document.getElementById(`dose-syp-${slot}-${rid}`).style.display = isSyp ? 'flex' : 'none';
+                document.getElementById(`dose-tick-${slot}-${rid}`).style.display = isTickType ? 'flex' : 'none';
             });
             
-            const isSpray = type === 'spray';
-            const sprayGrp = document.getElementById(`spray-total-group-${rid}`);
-            if(sprayGrp) sprayGrp.style.display = isSpray ? 'flex' : 'none';
+            const fixedTotalGrp = document.getElementById(`fixed-total-group-${rid}`);
+            if(fixedTotalGrp) fixedTotalGrp.style.display = (isTickType || isSyp) ? 'flex' : 'none';
             
-            if (isSpray) {
-                const cb1 = document.querySelector(`input[name="spray-t-${rid}"][value="1"]`);
+            if (isTickType) {
+                document.getElementById(`tick-m-${rid}`).checked = true;
+                document.getElementById(`tick-a-${rid}`).checked = false;
+                document.getElementById(`tick-n-${rid}`).checked = true;
+                
+                const cb1 = document.querySelector(`input[name="fixed-t-${rid}"][value="1"]`);
                 if(cb1) {
                     cb1.checked = true;
-                    window.setSprayTotal(rid, 1, cb1);
+                    window.setFixedTotal(rid, 1, cb1);
                 }
             } else if (isSyp) {
                 document.querySelectorAll(`input[name="syp-m-${rid}"]`).forEach(c=>c.checked=false);
@@ -2104,12 +2119,13 @@
             calculateTotal(rid);
         };
 
-        window.setSprayTotal = (rid, val, elem) => {
+        window.setFixedTotal = (rid, val, elem) => {
             if (elem && !elem.checked) {
-                elem.checked = true; 
+                document.getElementById(`t-${rid}`).value = '';
+                calculateTotal(rid);
                 return;
             }
-            document.querySelectorAll(`input[name="spray-t-${rid}"]`).forEach(cb => {
+            document.querySelectorAll(`input[name="fixed-t-${rid}"]`).forEach(cb => {
                 if (parseInt(cb.value) !== val) cb.checked = false;
                 else cb.checked = true; 
             });
@@ -2151,6 +2167,7 @@
                     <label class="form-check-label"><input type="checkbox" id="type-syp-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'syp')"> Syp</label>
                     <label class="form-check-label"><input type="checkbox" id="type-cap-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'cap')"> Cap</label>
                     <label class="form-check-label"><input type="checkbox" id="type-spray-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'spray')"> Spray</label>
+                    <label class="form-check-label"><input type="checkbox" id="type-ointment-${rowCount}" onclick="handleTypeCheck(${rowCount}, 'ointment')"> Ointment</label>
                     <span class="add-med-btn-inline" id="add-type-btn-${rowCount}" style="margin-top:0; padding: 2px 6px; font-size:0.85em; background:#6b7280;" onclick="showCustomTypeInput(${rowCount})" title="Add custom type">+ Add</span>
                     <div id="custom-type-box-${rowCount}" style="display:none; align-items:center; gap:5px;">
                         <input type="text" id="custom-type-input-${rowCount}" placeholder="Type..." style="width:70px; padding:2px 5px; font-size:0.85em;">
@@ -2178,6 +2195,9 @@
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="2.5 ml" onclick="handleSypChk(${rowCount}, 'm', this)"> 2.5 ml</label>
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-m-${rowCount}" value="5 ml" onclick="handleSypChk(${rowCount}, 'm', this)"> 5 ml</label>
                     </div>
+                    <div id="dose-tick-m-${rowCount}" style="display:none; justify-content:center; align-items:center; height:40px; padding-top:5px;">
+                        <input type="checkbox" id="tick-m-${rowCount}" onchange="calculateTotal(${rowCount})" style="transform: scale(1.5);">
+                    </div>
                 </div>
                 
                 <div class="col-small col-a"><label>A</label>
@@ -2189,6 +2209,9 @@
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2 ml" onclick="handleSypChk(${rowCount}, 'a', this)"> 2 ml</label>
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="2.5 ml" onclick="handleSypChk(${rowCount}, 'a', this)"> 2.5 ml</label>
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-a-${rowCount}" value="5 ml" onclick="handleSypChk(${rowCount}, 'a', this)"> 5 ml</label>
+                    </div>
+                    <div id="dose-tick-a-${rowCount}" style="display:none; justify-content:center; align-items:center; height:40px; padding-top:5px;">
+                        <input type="checkbox" id="tick-a-${rowCount}" onchange="calculateTotal(${rowCount})" style="transform: scale(1.5);">
                     </div>
                 </div>
                 
@@ -2202,6 +2225,9 @@
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="2.5 ml" onclick="handleSypChk(${rowCount}, 'n', this)"> 2.5 ml</label>
                         <label class="dur-check-label syp-btn"><input type="checkbox" name="syp-n-${rowCount}" value="5 ml" onclick="handleSypChk(${rowCount}, 'n', this)"> 5 ml</label>
                     </div>
+                    <div id="dose-tick-n-${rowCount}" style="display:none; justify-content:center; align-items:center; height:40px; padding-top:5px;">
+                        <input type="checkbox" id="tick-n-${rowCount}" onchange="calculateTotal(${rowCount})" style="transform: scale(1.5);">
+                    </div>
                 </div>
                 
                 <div class="col-days"><label>Duration</label><select id="d-preset-${rowCount}" onchange="handleDurationChange(${rowCount})"><option value="">Select</option><option value="5">5 Days</option><option value="10">10 Days</option><option value="15">15 Days</option><option value="30">1 Month</option><option value="60">2 Months</option><option value="90">3 Months</option><option value="120">4 Months</option><option value="150">5 Months</option><option value="180">6 Months</option><option value="manual">Manual</option></select>
@@ -2211,10 +2237,10 @@
                 <div class="col-total">
                     <label>Total</label>
                     <input type="text" id="t-${rowCount}" style="width:100%;">
-                    <div id="spray-total-group-${rowCount}" style="display:none; flex-direction:row; gap:8px; margin-top:6px; flex-wrap:wrap;">
-                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="spray-t-${rowCount}" value="1" onclick="setSprayTotal(${rowCount}, 1, this)"> 1</label>
-                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="spray-t-${rowCount}" value="2" onclick="setSprayTotal(${rowCount}, 2, this)"> 2</label>
-                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="spray-t-${rowCount}" value="3" onclick="setSprayTotal(${rowCount}, 3, this)"> 3</label>
+                    <div id="fixed-total-group-${rowCount}" style="display:none; flex-direction:row; gap:4px; margin-top:6px; flex-wrap:wrap;">
+                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="fixed-t-${rowCount}" value="1" onclick="setFixedTotal(${rowCount}, 1, this)"> 1</label>
+                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="fixed-t-${rowCount}" value="2" onclick="setFixedTotal(${rowCount}, 2, this)"> 2</label>
+                        <label class="dur-check-label syp-btn" style="margin:0; justify-content:center; width:40px;"><input type="checkbox" name="fixed-t-${rowCount}" value="3" onclick="setFixedTotal(${rowCount}, 3, this)"> 3</label>
                     </div>
                 </div>
                 
@@ -2229,13 +2255,21 @@
             const activeType = group.querySelector('input[type="checkbox"]:checked');
             const typeStr = activeType ? activeType.id.split('-')[1] : '';
             const isSyp = typeStr === 'syp';
-            const isSpray = typeStr === 'spray';
+            const isTickType = typeStr === 'spray' || typeStr === 'ointment';
 
-            if (isSpray) {
-                const sprayCb = document.querySelector(`input[name="spray-t-${rid}"]:checked`);
-                if (sprayCb) document.getElementById(`t-${rid}`).value = sprayCb.value;
-                return; 
+            if (isTickType) {
+            const fixedCb = document.querySelector(`input[name="fixed-t-${rid}"]:checked`);
+            if (fixedCb) document.getElementById(`t-${rid}`).value = fixedCb.value;
+            return; 
+        }
+        
+        if (isSyp) {
+            const fixedCb = document.querySelector(`input[name="fixed-t-${rid}"]:checked`);
+            if (fixedCb) {
+                document.getElementById(`t-${rid}`).value = fixedCb.value;
+                return;
             }
+        }
 
             const v = (s) => {
                 if(isSyp) {
@@ -2358,10 +2392,18 @@
         function finalizeDiagTemplate(text) {
             const area = document.getElementById('provDiagnosis');
             let currentText = area.value.trim();
-            let lines = currentText ? currentText.split('\n').filter(l => l.trim() !== '') : [];
-            let nextNum = lines.length + 1;
-            let newText = `${nextNum}. ${text}`;
-            area.value = currentText + (currentText ? '\n' : '') + newText + '\n';
+            
+            if (currentText) {
+                // If the user already typed a comma at the end, just add a space, otherwise add ", "
+                if (currentText.endsWith(',')) {
+                    area.value = currentText + ' ' + text;
+                } else {
+                    area.value = currentText + ', ' + text;
+                }
+            } else {
+                area.value = text;
+            }
+            
             area.style.height = 'auto'; area.style.height = (area.scrollHeight) + 'px'; 
             closeModal('selectionModal');
         }
