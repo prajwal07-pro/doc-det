@@ -277,8 +277,8 @@
             .rx-badge span { background: #222; color: white !important; padding: 4px 20px; border-radius: 4px; font-weight: bold; letter-spacing: 2px; font-size: 14px; -webkit-print-color-adjust: exact; }
             
             /* Single Meta Grid for all details - Fixed at 18px */
-            .print-meta-grid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin: 8px 0 12px 0; font-weight: bold; font-size: 22px !important; border-bottom: 2px solid #000; padding-bottom: 8px; }
-            
+/* Single Meta Grid for all details - Fixed at 24px */
+            .print-meta-grid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin: 8px 0 12px 0; font-weight: bold; font-size: 22px !important; border-bottom: 2px solid #000; padding-bottom: 8px; }            
             /* Group Prescription and Table tightly to prevent orphans */
             #printPrescriptionWrapper { page-break-inside: avoid; break-inside: avoid; }
             
@@ -549,8 +549,7 @@
                                 </div>
                             </div>
                             <div class="grid-3-reception">
-                                <div class="form-group"><label>Age *</label><input type="number" id="regAge" placeholder="Years" required></div>
-                                <div class="form-group"><label>Sex *</label><select id="regSex" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                                <div class="form-group"><label>Age *</label><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="regAge" placeholder="Years" required autocomplete="off"></div>                                <div class="form-group"><label>Sex *</label><select id="regSex" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
                                 <div class="form-group"><label>Phone Number</label><input type="tel" id="regPhone"></div>
                             </div>
                             <div class="form-group">
@@ -573,9 +572,18 @@
                     
                     <div class="card" style="height: fit-content;">
                         <h3 style="margin-top:0; color:var(--primary);">Review / Old Patient</h3>
-                        <div class="mic-wrapper" style="margin-bottom:10px;">
-                            <input type="text" id="reviewSearch" placeholder="🔍 Search Name or Reg No..." oninput="renderReviewSearch()">
-                            <button id="mic-reviewSearch" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'reviewSearch')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <div class="mic-wrapper" style="flex: 1;">
+                                <input type="text" id="reviewSearch" placeholder="🔍 Search Name, Reg No, Age, or Gender..." oninput="renderReviewSearch()">
+                                <button id="mic-reviewSearch" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'reviewSearch')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                            </div>
+                            <select id="reviewSort" style="padding: 10px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; width: 140px;" onchange="renderReviewSearch()">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="age_asc">Age (Lowest)</option>
+                                <option value="gender">Gender</option>
+                            </select>
                         </div>
                         <div id="reviewList" style="height: 400px; overflow-y: auto; border:1px solid #eee; border-radius:6px; padding:10px;"><div style="text-align:center; padding:20px; color:#ccc;">Loading...</div></div>
                     </div>
@@ -649,11 +657,15 @@
                             </div>
 
                             <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <div style="display:flex; align-items:center; margin-bottom:15px; gap: 10px;">
-                                    <input type="checkbox" id="includeExamInPrint" class="notes-checkbox" title="Check to print Exam" checked>
-                                    <label for="includeExamInPrint" class="notes-label">On Examination</label>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; cursor:pointer;" onclick="toggleExamSection()">
+                                    <div style="display:flex; align-items:center; gap: 10px;">
+                                        <input type="checkbox" id="includeExamInPrint" class="notes-checkbox" title="Check to print Exam" checked onclick="event.stopPropagation()">
+                                        <label for="includeExamInPrint" class="notes-label" onclick="event.stopPropagation()">On Examination</label>
+                                    </div>
+                                    <span id="examToggleIcon" style="font-weight:bold; color:var(--primary); font-size:1.2em;">▼</span>
                                 </div>
                                 
+                                <div id="examContentBody" style="display:none;">
                                 <div class="lab-grid-row1">
                                     <div class="form-group" id="fg-bp"><label>BP</label>
                                         <div class="mic-wrapper"><input type="text" id="examBP" class="lab-input" placeholder="e.g. 140/80"><button id="mic-examBP" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'examBP')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button></div>
@@ -694,7 +706,7 @@
                                 
                                 <div id="customExamFields"></div>
                                 <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="addCustomExamRow()">+ Add Manual Field</button>
-                            </div>
+                                </div> </div>
 
                             <div id="drugListContainer"></div>
                             <div style="margin-top:20px;"><button id="btnAddDrug" class="btn btn-green">+ Add Medicine</button></div>
@@ -1281,6 +1293,18 @@
             } else sec.style.display = 'none';
         }
 
+        window.toggleExamSection = function() {
+            const body = document.getElementById('examContentBody');
+            const icon = document.getElementById('examToggleIcon');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                icon.innerText = '▲';
+            } else {
+                body.style.display = 'none';
+                icon.innerText = '▼';
+            }
+        };
+
         window.showMedicineList = (rid) => {
             const dropdown = document.getElementById(`med-dropdown-${rid}`);
             dropdown.style.display = 'block';
@@ -1494,12 +1518,18 @@
             });
         }
         
-        function populateDatalist() { const dl = document.getElementById('allMedicines'); dl.innerHTML = ""; cloudMedicines.forEach(med => { const opt = document.createElement('option'); opt.value = med.name; dl.appendChild(opt); }); }
-
+function populateDatalist() { 
+            const dl = document.getElementById('allMedicines'); 
+            if (!dl) return; // Safety check
+            dl.innerHTML = ""; 
+            cloudMedicines.forEach(med => { 
+                const opt = document.createElement('option'); 
+                opt.value = med.name; 
+                dl.appendChild(opt); 
+            }); 
+        }
         function setupListeners() {
-            document.getElementById('btn-reception').onclick = () => switchPage('reception');
-            document.getElementById('btn-doctor').onclick = () => switchPage('doctor');
-            document.getElementById('btn-medicines').onclick = () => switchPage('medicine');
+            // Navigation is handled via inline onclick in HTML. Removed redundant listeners to prevent freezing.
             document.getElementById('regForm').onsubmit = async (e) => { e.preventDefault(); await registerPatient(); };
             document.getElementById('btnAddDrug').onclick = addDrugRow;
             document.getElementById('btnFinish').onclick = finishConsultation;
@@ -1508,15 +1538,29 @@
             document.getElementById('btnToggleHistory').onclick = toggleHistory;
         }
         window.switchPage = function(page) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(page + 'Page').classList.add('active');
-            if(page === 'reception') document.getElementById('btn-reception').classList.add('active');
-            else if(page === 'doctor') document.getElementById('btn-doctor').classList.add('active');
-            else if(page === 'medicine') {
-                document.getElementById('btn-medicines').classList.add('active');
-                renderMedManagerList();
+            try {
+                // Remove active state from all pages
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+                
+                // Remove active state from nav buttons
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                
+                // Show target page
+                const targetPage = document.getElementById(page + 'Page');
+                if (targetPage) targetPage.classList.add('active');
+                
+                // Highlight active button
+                const btn = document.getElementById('btn-' + page);
+                if (btn) btn.classList.add('active');
+                
+                // Special actions for medicine page
+                if (page === 'medicine' && typeof renderMedManagerList === 'function') {
+                    renderMedManagerList();
+                }
+            } catch (err) {
+                console.error("Navigation error safely caught:", err);
             }
-        }
+        };
 
         window.openEditPatientModal = (id) => {
             const p = allPatients.find(x => x.id === id);
@@ -1584,9 +1628,37 @@
             btn.disabled = false;
         }
 
-        function renderReviewSearch() {
-            const term = document.getElementById('reviewSearch').value.toLowerCase(), container = document.getElementById('reviewList'); container.innerHTML = "";
-            allPatients.filter(p => p.name.toLowerCase().includes(term) || String(p.regNo).includes(term)).forEach(p => {
+        window.renderReviewSearch = function() {
+            const searchEl = document.getElementById('reviewSearch');
+            const sortEl = document.getElementById('reviewSort');
+            const container = document.getElementById('reviewList'); 
+            
+            // Safety check: stop here if the elements are missing
+            if (!searchEl || !sortEl || !container) return; 
+
+            const term = searchEl.value.toLowerCase();
+            const sortVal = sortEl.value;
+            container.innerHTML = "";
+            
+            // Filter by Name, RegNo, Age, or Gender
+            let filteredPatients = allPatients.filter(p => 
+                (p.name && p.name.toLowerCase().includes(term)) || 
+                (p.regNo && String(p.regNo).includes(term)) ||
+                (p.age && String(p.age).includes(term)) ||
+                (p.sex && p.sex.toLowerCase().startsWith(term))
+            );
+            
+            // Apply the selected sorting logic
+            filteredPatients.sort((a, b) => {
+                if (sortVal === 'newest') return (b.regNo || 0) - (a.regNo || 0);
+                if (sortVal === 'oldest') return (a.regNo || 0) - (b.regNo || 0);
+                if (sortVal === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+                if (sortVal === 'age_asc') return (parseInt(a.age) || 0) - (parseInt(b.age) || 0);
+                if (sortVal === 'gender') return (a.sex || '').localeCompare(b.sex || '');
+                return 0;
+            });
+            
+            filteredPatients.forEach(p => {
                 container.innerHTML += `
                 <div class="patient-list-item review-item" onclick="togglePatientDetails(this)">
                     <div class="patient-list-header">
@@ -1603,7 +1675,11 @@
                     </div>
                 </div>`;
             });
-        }
+            
+            if (filteredPatients.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#ccc;">No patients found.</div>`;
+            }
+        };
         
         window.sendToDoctor = async (id) => { await updateDoc(doc(db, "patients", id), { status: 'waiting', timestamp: serverTimestamp() }); showToast("Sent to Doctor", "success"); };
         
@@ -1754,8 +1830,7 @@
         window.selectPatient = function(p) {
             currentPatient = p; document.getElementById('workspace').style.display = 'block';
             document.getElementById('pNameDisplay').innerText = p.name; 
-            document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | ${p.phone}`;
-            renderDoctorQueue(); 
+            document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | ${p.regDate || '-'}`;            renderDoctorQueue(); 
             
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = ''; 
@@ -2156,8 +2231,11 @@
             
             div.innerHTML = `
                 <div class="col-name"><label>Medicine Name</label>
-                    <div class="custom-dropdown-container mic-wrapper">
-                        <input type="text" id="name-${rowCount}" autocomplete="off" placeholder="Search..." oninput="filterMedicines(${rowCount})" onfocus="showMedicineList(${rowCount})">
+                    <div class="custom-dropdown-container" style="position:relative;">
+                        <div class="mic-wrapper">
+                            <input type="text" id="name-${rowCount}" placeholder="Type medicine..." oninput="filterMedicines(${rowCount})" onfocus="showMedicineList(${rowCount})" autocomplete="off">
+                            <button id="mic-name-${rowCount}" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'name-${rowCount}')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                        </div>
                         <div id="med-dropdown-${rowCount}" class="custom-dropdown"></div>
                     </div>
                     <div id="missing-alert-${rowCount}"></div>
