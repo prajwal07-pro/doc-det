@@ -539,7 +539,10 @@
             <div id="receptionPage" class="page active no-print">
                 <div class="grid-reception">
                     <div class="card">
-                        <h3 style="margin-top:0;">New Patient Registration</h3>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                            <h3 id="regFormTitle" style="margin:0;">New Patient Registration</h3>
+                            <button type="button" id="btnToggleRegMode" class="btn btn-secondary btn-sm" onclick="togglePatientMode()">Switch to Old Patient</button>
+                        </div>
                         <form id="regForm">
                             <div class="form-group">
                                 <label>Patient Name *</label>
@@ -559,7 +562,7 @@
                                     <button id="mic-regAddress" type="button" class="mic-btn" onmousedown="handleManualMicClick(event, 'regAddress')"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
                                 </div>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" id="regDiagGroup">
                                 <label>Provisional Diagnosis</label>
                                 <div class="mic-wrapper">
                                     <textarea id="regDiagnosis" rows="2" class="auto-expand"></textarea>
@@ -628,7 +631,7 @@
 
                             <div id="historySection" style="display:none; background:#f0f9ff; padding:15px; border-radius:8px; margin-bottom:20px;"><h4>Previous Visits</h4><div id="historyContent">Loading history...</div></div>
 
-                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div id="section-personal-docs" style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                                     <div class="notes-header">
                                         <input type="checkbox" id="includeNotesInPrint" class="notes-checkbox" title="Check to print" checked>
@@ -642,7 +645,7 @@
                                 </div>
                             </div>
 
-                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div id="section-prov-diag" style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items: center;">
                                     <div class="notes-header" style="margin:0;">
                                         <input type="checkbox" id="includeProvDiagInPrint" class="notes-checkbox" title="Check to print Prov Diag" checked>
@@ -656,7 +659,7 @@
                                 </div>
                             </div>
 
-                            <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div id="section-on-exam" style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; cursor:pointer;" onclick="toggleExamSection()">
                                     <div style="display:flex; align-items:center; gap: 10px;">
                                         <input type="checkbox" id="includeExamInPrint" class="notes-checkbox" title="Check to print Exam" checked onclick="event.stopPropagation()">
@@ -1598,32 +1601,48 @@ function populateDatalist() {
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
+        let isOldPatientMode = false;
+        window.togglePatientMode = () => {
+            isOldPatientMode = !isOldPatientMode;
+            document.getElementById('regFormTitle').innerText = isOldPatientMode ? "Old Patient Registration" : "New Patient Registration";
+            document.getElementById('btnToggleRegMode').innerText = isOldPatientMode ? "Switch to New Patient" : "Switch to Old Patient";
+            document.getElementById('regDiagGroup').style.display = isOldPatientMode ? 'none' : 'block';
+        };
+
         async function registerPatient() {
             const btn = document.getElementById('btnRegister'); btn.disabled = true;
-            const counterRef = doc(db, "counters", "patients");
+            
+            const pData = {
+                name: document.getElementById('regName').value, 
+                age: document.getElementById('regAge').value, 
+                sex: document.getElementById('regSex').value,
+                phone: document.getElementById('regPhone').value, 
+                address: document.getElementById('regAddress').value, 
+                diagnosis: isOldPatientMode ? "" : document.getElementById('regDiagnosis').value,
+                regDate: new Date().toLocaleDateString(), 
+                timestamp: serverTimestamp(), 
+                status: 'waiting', 
+                history: []
+            };
+
             try {
-                await runTransaction(db, async (transaction) => {
-                    const counterDoc = await transaction.get(counterRef);
-                    let newId = 1;
-                    if (counterDoc.exists()) { newId = counterDoc.data().current + 1; }
-                    transaction.set(counterRef, { current: newId });
-                    const newPatientRef = doc(collection(db, "patients"));
-                    transaction.set(newPatientRef, {
-                        name: document.getElementById('regName').value, 
-                        age: document.getElementById('regAge').value, 
-                        sex: document.getElementById('regSex').value,
-                        phone: document.getElementById('regPhone').value, 
-                        address: document.getElementById('regAddress').value, 
-                        diagnosis: document.getElementById('regDiagnosis').value,
-                        regDate: new Date().toLocaleDateString(), 
-                        timestamp: serverTimestamp(), 
-                        status: 'waiting', 
-                        history: [],
-                        regNo: newId
+                if (isOldPatientMode) {
+                    pData.regNo = 'OLD';
+                    await addDoc(collection(db, "patients"), pData);
+                } else {
+                    const counterRef = doc(db, "counters", "patients");
+                    await runTransaction(db, async (transaction) => {
+                        const counterDoc = await transaction.get(counterRef);
+                        let newId = 1;
+                        if (counterDoc.exists()) { newId = counterDoc.data().current + 1; }
+                        transaction.set(counterRef, { current: newId });
+                        pData.regNo = newId;
+                        const newPatientRef = doc(collection(db, "patients"));
+                        transaction.set(newPatientRef, pData);
                     });
-                });
+                }
                 document.getElementById('regForm').reset();
-                showToast("Patient Registered!", "success");
+                showToast(isOldPatientMode ? "Old Patient Registered!" : "New Patient Registered!", "success");
             } catch (e) { console.error(e); showToast("Registration Failed", "error"); }
             btn.disabled = false;
         }
@@ -1649,9 +1668,11 @@ function populateDatalist() {
             );
             
             // Apply the selected sorting logic
+            // Apply the selected sorting logic
+            const getSortNum = (r) => r === 'OLD' ? 0 : (parseInt(r) || 0);
             filteredPatients.sort((a, b) => {
-                if (sortVal === 'newest') return (b.regNo || 0) - (a.regNo || 0);
-                if (sortVal === 'oldest') return (a.regNo || 0) - (b.regNo || 0);
+                if (sortVal === 'newest') return getSortNum(b.regNo) - getSortNum(a.regNo);
+                if (sortVal === 'oldest') return getSortNum(a.regNo) - getSortNum(b.regNo);
                 if (sortVal === 'name_asc') return (a.name || '').localeCompare(b.name || '');
                 if (sortVal === 'age_asc') return (parseInt(a.age) || 0) - (parseInt(b.age) || 0);
                 if (sortVal === 'gender') return (a.sex || '').localeCompare(b.sex || '');
@@ -1662,11 +1683,11 @@ function populateDatalist() {
                 container.innerHTML += `
                 <div class="patient-list-item review-item" onclick="togglePatientDetails(this)">
                     <div class="patient-list-header">
-                        <div><strong>${p.name}</strong> <small>(#${p.regNo || '?'} | ${p.age}Y/${p.sex})</small></div>
+                        <div><strong>${p.name}</strong> <small>(${p.regNo === 'OLD' ? 'OLD' : '#' + (p.regNo || '?')} | ${p.age}Y/${p.sex})</small></div>
                         <div style="display:flex; gap:5px;">
                             <button class="btn btn-blue btn-sm" onclick="event.stopPropagation(); openEditPatientModal('${p.id}')">Edit</button>
                             <button class="btn btn-yellow btn-sm" onclick="event.stopPropagation(); sendToDoctor('${p.id}')">Send to Doctor</button>
-                            <button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deletePatient('${p.id}', ${p.regNo})">Delete</button>
+                            <button class="btn btn-red btn-sm" onclick="event.stopPropagation(); deletePatient('${p.id}', '${p.regNo}')">Delete</button>
                         </div>
                     </div>
                     <div class="patient-details-expanded">
@@ -1689,22 +1710,26 @@ function populateDatalist() {
             try {
                 await deleteDoc(doc(db, "patients", id));
                 
-                const snapshot = await getDocs(collection(db, "patients"));
-                const batch = writeBatch(db);
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (data.regNo > regNo) {
-                        batch.update(docSnap.ref, { regNo: data.regNo - 1 });
+                // Only shift numbers down if this was a NEW patient with a real number
+                if (regNo !== 'OLD') {
+                    const snapshot = await getDocs(collection(db, "patients"));
+                    const batch = writeBatch(db);
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data.regNo !== 'OLD' && data.regNo > regNo) {
+                            batch.update(docSnap.ref, { regNo: data.regNo - 1 });
+                        }
+                    });
+                    
+                    const counterRef = doc(db, "counters", "patients");
+                    const counterDoc = await getDoc(counterRef);
+                    if (counterDoc.exists()) {
+                        batch.update(counterRef, { current: counterDoc.data().current - 1 });
                     }
-                });
-                
-                const counterRef = doc(db, "counters", "patients");
-                const counterDoc = await getDoc(counterRef);
-                if (counterDoc.exists()) {
-                    batch.update(counterRef, { current: counterDoc.data().current - 1 });
+                    
+                    await batch.commit();
                 }
                 
-                await batch.commit();
                 showToast("Patient deleted successfully", "success");
             } catch(e) {
                 console.error(e);
@@ -1717,7 +1742,8 @@ function populateDatalist() {
             const container = document.getElementById('doctorQueueList'); container.innerHTML = ""; document.getElementById('queueCount').innerText = waitingQueue.length;
             waitingQueue.forEach(p => {
                 const div = document.createElement('div'); div.className = `patient-list-item ${currentPatient && currentPatient.id === p.id ? 'selected' : ''}`;
-                div.onclick = () => selectPatient(p); div.innerHTML = `<strong>${p.name}</strong><br><small>#${p.regNo || '?'} | ${p.age}Y / ${p.sex}</small>`;
+                const displayReg = p.regNo === 'OLD' ? 'OLD' : '#' + (p.regNo || '?');
+                div.onclick = () => selectPatient(p); div.innerHTML = `<strong>${p.name}</strong><br><small>${displayReg} | ${p.age}Y / ${p.sex}</small>`;
                 container.appendChild(div);
             });
         }
@@ -1830,7 +1856,20 @@ function populateDatalist() {
         window.selectPatient = function(p) {
             currentPatient = p; document.getElementById('workspace').style.display = 'block';
             document.getElementById('pNameDisplay').innerText = p.name; 
-            document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | ${p.regDate || '-'}`;            renderDoctorQueue(); 
+            
+            if (p.regNo === 'OLD') {
+                document.getElementById('pDetailsDisplay').innerText = `OLD | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | 📅 First Visit: ${p.regDate || '-'}`;
+                document.getElementById('section-personal-docs').style.display = 'none';
+                document.getElementById('section-prov-diag').style.display = 'none';
+                document.getElementById('section-on-exam').style.display = 'none';
+            } else {
+                document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | 📅 First Visit: ${p.regDate || '-'}`;
+                document.getElementById('section-personal-docs').style.display = 'block';
+                document.getElementById('section-prov-diag').style.display = 'block';
+                document.getElementById('section-on-exam').style.display = 'block';
+            }
+
+            renderDoctorQueue(); 
             
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = ''; 
@@ -1908,7 +1947,7 @@ function populateDatalist() {
                                     const tickEl = document.getElementById(`tick-${slot}-${rid}`);
                                     if (tickEl) tickEl.checked = (val === 1);
                                 } else {
-                                    document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','2','3'].includes(String(val)));
+                                    document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','1.5','2','3'].includes(String(val)));
                                     document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
                                 }
                             }
@@ -2092,7 +2131,7 @@ function populateDatalist() {
                             aHtml = settings.medA === 'hidden' ? '' : `<td class="print-col-a">${fmtTick(d.a)}</td>`;
                             nHtml = settings.medN === 'hidden' ? '' : `<td class="print-col-n">${fmtTick(d.n)}</td>`;
                         } else {
-                            const fmt = (v) => v==0.5 ? '½' : (v==='0'||v===0 ? '-' : v);
+                            const fmt = (v) => v==0.5 ? '½' : (v==1.5 ? '1½' : (v==='0'||v===0 ? '-' : v));
                             mHtml = settings.medM === 'hidden' ? '' : `<td class="print-col-m">${fmt(d.m)}</td>`;
                             aHtml = settings.medA === 'hidden' ? '' : `<td class="print-col-a">${fmt(d.a)}</td>`;
                             nHtml = settings.medN === 'hidden' ? '' : `<td class="print-col-n">${fmt(d.n)}</td>`;
@@ -2227,7 +2266,7 @@ function populateDatalist() {
             rowCount++;
             const container = document.getElementById('drugListContainer');
             const div = document.createElement('div'); div.className = 'drug-row'; div.id = `row-${rowCount}`;
-            const doseOpts = `<option value="0">0</option><option value="0.5">½</option><option value="2">2</option><option value="3">3</option>`; 
+            const doseOpts = `<option value="0">0</option><option value="0.5">½</option><option value="1.5">1½</option><option value="2">2</option><option value="3">3</option>`; 
             
             div.innerHTML = `
                 <div class="col-name"><label>Medicine Name</label>
