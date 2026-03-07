@@ -1054,8 +1054,9 @@
             formData.append("temperature", "0");
             formData.append("language", "en"); 
             
+            // Reduced the prompt size to 400 characters to prevent 400 Bad Request errors
             let medNames = cloudMedicines.map(m => m.name).join(", ");
-            if(medNames) formData.append("prompt", "Medical terms: " + medNames.substring(0, 1000));
+            if(medNames) formData.append("prompt", "Medical terms: " + medNames.substring(0, 400));
 
             for(let key of keys) {
                 try {
@@ -1064,15 +1065,23 @@
                         headers: { "Authorization": `Bearer ${key}` },
                         body: formData
                     });
-                    if(res.status === 429) continue; 
-                    if(!res.ok) throw new Error("API Error");
+                    
+                    if(res.status === 429) continue; // Rate limited, try next key
+                    
+                    // NEW: Print the EXACT error from Groq if it fails
+                    if(!res.ok) {
+                        let errorText = await res.text();
+                        console.error("🚨 Groq API Error Details:", res.status, errorText);
+                        throw new Error("API Error: " + res.status);
+                    }
+                    
                     let data = await res.json();
                     return data.text.trim();
                 } catch(e) {
-                    console.log("Groq API fallback triggered.");
+                    console.log("Groq API fallback triggered. Reason:", e.message);
                 }
             }
-            return null; // Signals failure if all keys are rate limited or empty
+            return null; // Signals failure if all keys fail
         }
 
         if ('webkitSpeechRecognition' in window) {
