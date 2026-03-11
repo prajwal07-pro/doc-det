@@ -610,8 +610,18 @@
             <div id="doctorPage" class="page no-print">
                 <div class="grid-doctor">
                     <div class="card patient-list-section">
-                        <div style="margin-bottom:10px;"><h3 style="margin:0; font-size:16px;">Waiting Queue (<span id="queueCount">0</span>)</h3></div>
-                        <div id="doctorQueueList" style="flex-grow:1;"><div style="text-align:center; padding:20px; color:#ccc;">No patients waiting...</div></div>
+                        <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="margin:0; font-size:16px;">Waiting Queue (<span id="queueCount">0</span>)</h3>
+                            <button class="btn btn-red btn-sm" style="padding: 4px 8px; font-size: 0.8em;" onclick="removeSelectedFromQueue()">Clear Selected</button>
+                        </div>
+                        <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee; display:flex;">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:0.95em; margin:0;">
+                                <input type="checkbox" id="selectAllQueue" onclick="toggleAllQueue()" style="width:16px; height:16px; margin:0; flex-shrink:0;"> Select All
+                            </label>
+                        </div>
+                        <div id="doctorQueueList" style="flex-grow:1; overflow-y:auto;">
+                            <div style="text-align:center; padding:20px; color:#ccc;">No patients waiting...</div>
+                        </div>
                     </div>
 
                     <div id="workspace" style="display: none; position: relative;">
@@ -624,8 +634,10 @@
                         <div class="card">
                             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
                                 <div><h2 id="pNameDisplay" style="margin:0;">-</h2><small id="pDetailsDisplay" style="color:#6b7280;">-</small></div>
-                                <div style="display:flex; gap:15px; align-items:center;">
-                                    <button id="btnToggleHistory" class="btn btn-secondary" onclick="toggleHistory()">History</button>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button class="btn btn-secondary btn-sm" onclick="clearWorkspace()" title="Clear Form & Draft">Clear Form</button>
+                                    <button id="btnFinish" class="btn btn-red btn-sm" onclick="finishConsultation()">Clear from Queue</button>
+                                    <button id="btnToggleHistory" class="btn btn-secondary btn-sm" onclick="toggleHistory()">History</button>
                                 </div>
                             </div>
 
@@ -1054,9 +1066,13 @@
             formData.append("temperature", "0");
             formData.append("language", "en"); 
             
-            // Reduced the prompt size to 400 characters to prevent 400 Bad Request errors
+            // Injecting MRI, CT, EEG, etc. directly into the AI's brain so it expects these words!
+            let promptText = "Medical terms: MRI, CT Scan, EEG, ECG, NCV, Doppler, GTCS, BPPV, ";
             let medNames = cloudMedicines.map(m => m.name).join(", ");
-            if(medNames) formData.append("prompt", "Medical terms: " + medNames.substring(0, 400));
+            if(medNames) {
+                promptText += medNames.substring(0, 400); // Kept short to prevent API crashing
+            }
+            formData.append("prompt", promptText);
 
             for(let key of keys) {
                 try {
@@ -1065,23 +1081,24 @@
                         headers: { "Authorization": `Bearer ${key}` },
                         body: formData
                     });
-                    
-                    if(res.status === 429) continue; // Rate limited, try next key
-                    
-                    // NEW: Print the EXACT error from Groq if it fails
+                    if(res.status === 429) continue; 
                     if(!res.ok) {
                         let errorText = await res.text();
-                        console.error("🚨 Groq API Error Details:", res.status, errorText);
+                        console.error("🚨 Groq API Error:", res.status, errorText);
                         throw new Error("API Error: " + res.status);
                     }
-                    
                     let data = await res.json();
-                    return data.text.trim();
+                    
+                    // Final safety net to catch rogue phonetics
+                    let finalText = data.text.trim();
+                    finalText = finalText.replace(/\b(em ar eye|mr i)\b/gi, "MRI");
+                    
+                    return finalText;
                 } catch(e) {
                     console.log("Groq API fallback triggered. Reason:", e.message);
                 }
             }
-            return null; // Signals failure if all keys fail
+            return null; 
         }
 
         if ('webkitSpeechRecognition' in window) {
@@ -1094,7 +1111,17 @@
                 
                 let sessionTotalText = '';
                 for (let i = 0; i < e.results.length; ++i) {
-                    sessionTotalText += e.results[i][0].transcript;
+                    let txt = e.results[i][0].transcript;
+                    
+                    // --- LIVE AUTO-CORRECT ---
+                    // If dictating specifically in the CT/MRI box, force "Mrs" to become "MRI"
+                    if (activeInputId === 'testCTMRI') {
+                        txt = txt.replace(/\b(mrs\.?|misses)\b/gi, "MRI");
+                    }
+                    // Catch phonetic mistakes everywhere else
+                    txt = txt.replace(/\b(em ar eye|mr i|m r i)\b/gi, "MRI");
+
+                    sessionTotalText += txt;
                 }
                 currentWebkitText = sessionTotalText;
 
@@ -1278,32 +1305,138 @@
             });
         }
 
+        window.renderHistoryContent = function() {
+            const cont = document.getElementById('historyContent');
+            if (!currentPatient || !currentPatient.history || !currentPatient.history.length) {
+                cont.innerHTML = "No history.";
+            } else {
+                cont.innerHTML = currentPatient.history.slice().reverse().map((h, i) => {
+                    const origIndex = currentPatient.history.length - 1 - i;
+                    let labStr = "";
+                    if (h.labs) {
+                        const l = h.labs;
+                        const parts = [];
+                        if(l.bp) parts.push(`BP: ${l.bp}`);
+                        if(l.hb) parts.push(`HB: ${l.hb}`);
+                        if(parts.length > 0) labStr = `<div style="font-size:12px; color:#666; margin-bottom:5px;"><strong>Exam:</strong> ${parts.join(', ')}</div>`;
+                    }
+                    return `<div style="border-bottom:1px solid #ccc; padding:10px 0;">
+                        <strong>${h.date}</strong>${labStr}
+                        ${h.provDiagnosis ? `<p style="margin:5px 0; font-size:13px;"><strong>Diagnosis:</strong> ${h.provDiagnosis}</p>` : ''}
+                        ${h.notes ? `<p style="margin:5px 0; font-size:13px;"><strong>Personal Docs:</strong> ${h.notes}</p>` : ''}
+                        <ul style="margin:5px 0; padding-left:20px; font-size:13px;">${(h.meds||[]).map(m => `<li>${m.type} ${m.name} (${m.strength||''}) - Qty: ${m.t}</li>`).join('')}</ul>
+                        <div style="margin-top:8px; display:flex; gap:10px;">
+                            <button class="btn btn-blue btn-sm" onclick="editHistory(${origIndex})">Edit / Load</button>
+                            <button class="btn btn-red btn-sm" onclick="removeHistory(${origIndex})">Remove</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        };
+
         window.toggleHistory = function() {
-            const sec = document.getElementById('historySection'), cont = document.getElementById('historyContent');
+            const sec = document.getElementById('historySection');
             if (sec.style.display === 'none') {
                 sec.style.display = 'block';
-                if (!currentPatient.history?.length) {
-                    cont.innerHTML = "No history.";
-                } else {
-                    cont.innerHTML = currentPatient.history.slice().reverse().map(h => {
-                        let labStr = "";
-                        if (h.labs) {
-                            const l = h.labs;
-                            const parts = [];
-                            if(l.bp) parts.push(`BP: ${l.bp}`);
-                            if(l.hb) parts.push(`HB: ${l.hb}`);
-                            if(parts.length > 0) labStr = `<div style="font-size:12px; color:#666; margin-bottom:5px;"><strong>Exam:</strong> ${parts.join(', ')}</div>`;
-                        }
-                        return `<div style="border-bottom:1px solid #ccc; padding:10px 0;">
-                            <strong>${h.date}</strong>${labStr}
-                            ${h.provDiagnosis ? `<p style="margin:5px 0; font-size:13px;"><strong>Diagnosis:</strong> ${h.provDiagnosis}</p>` : ''}
-                            ${h.notes ? `<p style="margin:5px 0; font-size:13px;"><strong>Personal Docs:</strong> ${h.notes}</p>` : ''}
-                            <ul style="margin:5px 0; padding-left:20px; font-size:13px;">${h.meds.map(m => `<li>${m.type} ${m.name} (${m.strength})</li>`).join('')}</ul>
-                        </div>`;
-                    }).join('');
+                renderHistoryContent();
+            } else {
+                sec.style.display = 'none';
+            }
+        };
+
+        window.removeHistory = async (index) => {
+            const newHistory = [...currentPatient.history];
+            newHistory.splice(index, 1);
+            await updateDoc(doc(db, "patients", currentPatient.id), { history: newHistory });
+            currentPatient.history = newHistory; 
+            renderHistoryContent(); // Re-render in place!
+            showToast("Record removed", "success");
+        };
+
+        window.editHistory = (index) => {
+            const h = currentPatient.history[index];
+            clearWorkspace(); 
+            
+            document.getElementById('provDiagnosis').value = h.provDiagnosis || '';
+            document.getElementById('docDetails').value = h.notes || '';
+            
+            if (h.labs) {
+                document.getElementById('examBP').value = h.labs.bp || '';
+                document.getElementById('examPulse').value = h.labs.pulse || '';
+                document.getElementById('labHB').value = h.labs.hb || '';
+                document.getElementById('labRBS').value = h.labs.rbs || '';
+                document.getElementById('labCreatinine').value = h.labs.cr || '';
+                document.getElementById('testECG').value = h.labs.ecg || '';
+                document.getElementById('testEEG').value = h.labs.eeg || '';
+                document.getElementById('testNCV').value = h.labs.ncv || '';
+                document.getElementById('testDoppler').value = h.labs.doppler || '';
+                document.getElementById('testCTMRI').value = h.labs.ctmri || '';
+                document.getElementById('testOldReports').value = h.labs.oldreports || '';
+                
+                if (h.labs.custom) {
+                    h.labs.custom.forEach(c => {
+                        addCustomExamRow();
+                        document.getElementById(`customExamTitle-${customExamCount}`).value = c.title;
+                        document.getElementById(`customExamVal-${customExamCount}`).value = c.val;
+                    });
                 }
-            } else sec.style.display = 'none';
-        }
+            }
+
+            if (h.meds && h.meds.length > 0) {
+                document.getElementById('drugListContainer').innerHTML = ''; 
+                h.meds.forEach(d => {
+                    addDrugRow();
+                    const rid = rowCount; 
+                    document.getElementById(`name-${rid}`).value = d.name;
+                    
+                    if (d.type) {
+                        const typeLower = d.type.toLowerCase();
+                        let el = document.getElementById(`type-${typeLower}-${rid}`);
+                        if (!el) {
+                            const container = document.getElementById(`type-group-${rid}`);
+                            const btn = document.getElementById(`add-type-btn-${rid}`);
+                            const lbl = document.createElement('label');
+                            lbl.className = 'form-check-label';
+                            lbl.innerHTML = `<input type="checkbox" id="type-${typeLower}-${rid}" onclick="handleTypeCheck(${rid}, '${typeLower}')"> ${d.type}`;
+                            container.insertBefore(lbl, btn);
+                            el = document.getElementById(`type-${typeLower}-${rid}`);
+                        }
+                        if(el) { el.checked = true; handleTypeCheck(rid, typeLower); }
+                    }
+                    
+                    if (d.strength) {
+                        toggleStrengthMode(rid, 'manual');
+                        document.getElementById(`str-input-${rid}`).value = d.strength;
+                    }
+
+                    ['m', 'a', 'n'].forEach(slot => {
+                        const val = d[slot];
+                        if(val !== undefined) {
+                            if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
+                                const tickEl = document.getElementById(`tick-${slot}-${rid}`);
+                                if (tickEl) tickEl.checked = (val === 1);
+                            } else {
+                                document.getElementById(`${slot}-chk-${rid}`).checked = (val === 1 && !['0.5','1.5','2','3'].includes(String(val)));
+                                document.getElementById(`${slot}-${rid}`).value = val === 1 ? '0' : val;
+                            }
+                        }
+                    });
+
+                    calculateTotal(rid);
+                    if(d.t !== undefined && d.t !== null) document.getElementById(`t-${rid}`).value = d.t;
+                });
+            }
+
+            setTimeout(() => {
+                document.querySelectorAll('.auto-expand').forEach(el => { el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px'; });
+            }, 100);
+
+            showToast("History loaded into chamber!", "success");
+            document.getElementById('historySection').style.display = 'none';
+        };
+        
+        // This variable prevents duplicate history entries if you print twice!
+        let hasSavedHistoryThisSession = false;
 
         window.toggleExamSection = function() {
             const body = document.getElementById('examContentBody');
@@ -1549,28 +1682,34 @@ function populateDatalist() {
             document.getElementById('reviewSearch').onkeyup = renderReviewSearch;
             document.getElementById('btnToggleHistory').onclick = toggleHistory;
         }
+        let isDoctorUnlocked = false;
+        
         window.switchPage = function(page) {
             try {
-                // Remove active state from all pages
+                // Doctor Chamber Password Lock
+                if (page === 'doctor' && !isDoctorUnlocked) {
+                    const pwd = prompt("🔒 Enter Doctor Chamber Password:");
+                    if (pwd !== "wali123") { // <-- You can change "wali123" to whatever password you want!
+                        showToast("Incorrect Password", "error");
+                        return; // Stops them from entering
+                    }
+                    isDoctorUnlocked = true;
+                }
+
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
-                
-                // Remove active state from nav buttons
                 document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
                 
-                // Show target page
                 const targetPage = document.getElementById(page + 'Page');
                 if (targetPage) targetPage.classList.add('active');
                 
-                // Highlight active button
                 const btn = document.getElementById('btn-' + page);
                 if (btn) btn.classList.add('active');
                 
-                // Special actions for medicine page
                 if (page === 'medicine' && typeof renderMedManagerList === 'function') {
                     renderMedManagerList();
                 }
             } catch (err) {
-                console.error("Navigation error safely caught:", err);
+                console.error(err);
             }
         };
 
@@ -1747,14 +1886,75 @@ function populateDatalist() {
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
+        window.toggleAllQueue = function() {
+            const selectAll = document.getElementById('selectAllQueue').checked;
+            document.querySelectorAll('.queue-chk').forEach(chk => chk.checked = selectAll);
+        };
+
+        window.removeSelectedFromQueue = async function() {
+            const selected = Array.from(document.querySelectorAll('.queue-chk:checked')).map(c => c.value);
+            if(selected.length === 0) return;
+            
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            for(let id of selected) {
+                await updateDoc(doc(db, "patients", id), { status: 'done' }); 
+            }
+            if(currentPatient && selected.includes(currentPatient.id)) {
+                document.getElementById('workspace').style.display = 'none';
+                currentPatient = null;
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
+            showToast("Selected patients cleared from queue", "success");
+            document.getElementById('selectAllQueue').checked = false;
+        };
+
         function renderDoctorQueue() {
-            const container = document.getElementById('doctorQueueList'); container.innerHTML = ""; document.getElementById('queueCount').innerText = waitingQueue.length;
+            if (document.getElementById('historySection').style.display === 'block') {
+                renderHistoryContent();
+            }
+            const container = document.getElementById('doctorQueueList'); 
+            container.innerHTML = ""; 
+            document.getElementById('queueCount').innerText = waitingQueue.length;
+            
+            const selectAllChk = document.getElementById('selectAllQueue');
+            if(selectAllChk) selectAllChk.checked = false;
+
             waitingQueue.forEach(p => {
-                const div = document.createElement('div'); div.className = `patient-list-item ${currentPatient && currentPatient.id === p.id ? 'selected' : ''}`;
                 const displayReg = p.regNo === 'OLD' ? 'OLD' : '#' + (p.regNo || '?');
-                div.onclick = () => selectPatient(p); div.innerHTML = `<strong>${p.name}</strong><br><small>${displayReg} | ${p.age}Y / ${p.sex}</small>`;
+                const div = document.createElement('div'); 
+                div.className = `patient-list-item ${currentPatient && currentPatient.id === p.id ? 'selected' : ''}`;
+                div.style.display = 'flex'; 
+                div.style.gap = '10px'; 
+                div.style.alignItems = 'center';
+
+                const chk = document.createElement('input');
+                chk.type = 'checkbox';
+                chk.className = 'queue-chk';
+                chk.value = p.id;
+                // Force the checkbox to be small and stay on the left
+                chk.style.width = '16px'; 
+                chk.style.height = '16px';
+                chk.style.margin = '0';
+                chk.style.flexShrink = '0';
+                chk.style.cursor = 'pointer';
+                chk.onclick = (e) => e.stopPropagation();
+
+                const content = document.createElement('div');
+                content.style.flex = "1";
+                content.style.cursor = "pointer";
+                // Make the text layout look cleaner
+                content.style.fontSize = "0.95em";
+                content.innerHTML = `<strong>${p.name}</strong><br><small style="color:#4b5563;">${displayReg} | ${p.age}Y / ${p.sex}</small>`;
+                content.onclick = () => selectPatient(p);
+
+                div.appendChild(chk);
+                div.appendChild(content);
                 container.appendChild(div);
             });
+            
+            if (waitingQueue.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#ccc;">No patients waiting...</div>`;
+            }
         }
 
         const getDrugValue = (rid, slot, type) => {
@@ -1864,6 +2064,7 @@ function populateDatalist() {
 
         window.selectPatient = function(p) {
             currentPatient = p; document.getElementById('workspace').style.display = 'block';
+            hasSavedHistoryThisSession = false; // Resets when a new patient is clicked
             document.getElementById('pNameDisplay').innerText = p.name; 
             
             if (p.regNo === 'OLD') {
@@ -2083,7 +2284,15 @@ function populateDatalist() {
             btn.disabled = true;
             try {
                 const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, provDiagnosis, labs };
-                await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis });
+                
+                // Only save to history if it hasn't been saved yet this session
+                if (!hasSavedHistoryThisSession) {
+                    await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis });
+                    currentPatient.history.push(record); // Updates local copy instantly
+                    hasSavedHistoryThisSession = true;
+                } else {
+                    await updateDoc(doc(db, "patients", currentPatient.id), { diagnosis: provDiagnosis });
+                }
                 
                 const hasExamDataInternal = hasExamData(labs);
                 const hasMeds = drugs.length > 0;
