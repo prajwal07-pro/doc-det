@@ -322,6 +322,50 @@
         </div>
     </div>
 
+    <div id="analyticsModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; height: 85vh; display: flex; flex-direction: column; padding: 25px;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <h4 class="modal-title">Patient Analytics Dashboard</h4>
+                <button class="btn btn-red btn-sm" onclick="closeModal('analyticsModal')">X</button>
+            </div>
+            
+            <div class="modal-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+                
+                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; flex-shrink: 0; flex-wrap: wrap;">
+                    <div class="nav-pills" style="margin:0; padding:0; background:transparent;">
+                        <button id="btn-ana-day" class="nav-btn active" onclick="setAnalyticsMode('day')">Daily</button>
+                        <button id="btn-ana-week" class="nav-btn" onclick="setAnalyticsMode('week')">Weekly</button>
+                        <button id="btn-ana-year" class="nav-btn" onclick="setAnalyticsMode('year')">Yearly</button>
+                    </div>
+                    <div style="flex: 1;"></div>
+                    <div>
+                        <input type="date" id="analyticsDateInput" onchange="renderAnalyticsData()" style="padding: 8px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; max-width: 200px;">
+                    </div>
+                    <div style="background: var(--primary); color: white; padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                        Total: <span id="analyticsTotalCount">0</span>
+                    </div>
+                    <button class="btn btn-primary" style="padding: 8px 15px; font-size: 14px;" onclick="printAnalytics()">🖨️ Print</button>
+                </div>
+
+                <div style="flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: white;">
+                    <table style="width: 100%; border-collapse: collapse; margin: 0; font-size: 14px;">
+                        <thead style="position: sticky; top: 0; background: #e5e7eb; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <tr>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #d1d5db;">Reg No</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #d1d5db;">Patient Name</th>
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #d1d5db;">Age / Sex</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #d1d5db;">Date</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #d1d5db;">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="manualDurationModal" class="modal">
         <div class="modal-content" style="max-width: 350px;">
             <div class="modal-header">
@@ -500,8 +544,8 @@
                     <div class="form-group"><label>Clear from Queue Button</label><select id="set-clearQueuePos"><option value="top">Upper Side Only</option><option value="bottom">Lower Side Only</option><option value="both">Both Upper & Lower</option><option value="hidden">Hidden</option></select></div>
                 </div>
                 
-                <button class="btn btn-success" style="width:100%; margin-top:15px;" onclick="saveSystemSettings()">Save Settings</button>
-            </div>
+<button class="btn btn-blue" style="width:100%; margin-top:20px;" onclick="openAnalyticsModal()">View Patient Analytics</button>
+                <button class="btn btn-success" style="width:100%; margin-top:15px;" onclick="saveSystemSettings()">Save Settings</button>            </div>
         </div>
     </div>
 
@@ -752,6 +796,8 @@
 
     <div class="print-only print-container">
         
+        <div id="printAnalyticsContainer" style="display:none; font-family: 'Inter', sans-serif;"></div>
+        
         <div id="printDocument" class="print-page">
             
             <div class="print-header">
@@ -799,9 +845,12 @@
                 </table>
             </div>
             
+            <div style="margin-top: 20px; font-size: 18px; font-weight: bold; font-family: 'Inter', sans-serif; color: #000;">
+                Next Visit / पुढची भेट / ಮುಂದಿನ ಭೇಟಿ : 
+            </div>
+            
             <div class="print-footer"><div class="signature-line">Signature</div></div>
         </div>
-
     </div>
 
     <script type="module">
@@ -1037,6 +1086,204 @@
         window.toggleAuthForms = () => {
             const l = document.getElementById('loginForm'), s = document.getElementById('signupForm');
             if(l.style.display==='none'){l.style.display='block';s.style.display='none'}else{l.style.display='none';s.style.display='block'}
+        };
+
+        let currentAnaMode = 'day';
+        let currentAnalyticsData = []; // Stores the data to be printed
+
+        window.printAnalytics = () => {
+            if (!currentAnalyticsData || currentAnalyticsData.length === 0) {
+                showToast("No data to print", "error");
+                return;
+            }
+
+            const printContainer = document.getElementById('printAnalyticsContainer');
+            const modeText = document.getElementById('btn-ana-day').classList.contains('active') ? 'Daily' :
+                             document.getElementById('btn-ana-week').classList.contains('active') ? 'Weekly' : 'Yearly';
+            const dateVal = document.getElementById('analyticsDateInput').value;
+
+            // Generate the clean Print Layout
+            let html = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #1e3a8a; font-size: 24px; text-transform: uppercase;">Neuro Specialities Centre</h2>
+                    <h3 style="margin: 5px 0; font-size: 18px;">Patient Analytics Report</h3>
+                    <p style="margin: 5px 0; font-weight: bold; font-size: 14px;">Report Type: ${modeText} &nbsp;|&nbsp; Period: ${dateVal}</p>
+                    <p style="margin: 5px 0; font-size: 14px;">Total Patients Registered: ${currentAnalyticsData.length}</p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 20px;" border="1">
+                    <thead>
+                        <tr style="background-color: #f3f4f6;">
+                            <th style="padding: 10px; text-align: left; border: 1px solid #000;">Reg No</th>
+                            <th style="padding: 10px; text-align: left; border: 1px solid #000;">Patient Name</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #000;">Age / Sex</th>
+                            <th style="padding: 10px; text-align: left; border: 1px solid #000;">Date</th>
+                            <th style="padding: 10px; text-align: left; border: 1px solid #000;">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            currentAnalyticsData.forEach(p => {
+                let timeStr = "-";
+                let dateStr = p.regDate || "-";
+                if (p.timestamp && typeof p.timestamp.toDate === 'function') {
+                    const d = p.timestamp.toDate();
+                    timeStr = d.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+                    dateStr = d.toLocaleDateString('en-GB');
+                }
+                const displayReg = p.regNo === 'OLD' ? 'OLD' : '#' + (p.regNo || '?');
+                
+                html += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #000; font-weight: bold;">${displayReg}</td>
+                        <td style="padding: 10px; border: 1px solid #000; font-weight: bold;">${p.name}</td>
+                        <td style="padding: 10px; border: 1px solid #000; text-align: center;">${p.age}Y / ${p.sex}</td>
+                        <td style="padding: 10px; border: 1px solid #000;">${dateStr}</td>
+                        <td style="padding: 10px; border: 1px solid #000;">${timeStr}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            printContainer.innerHTML = html;
+
+            // Swap visibility so ONLY the analytics table prints
+            document.getElementById('printDocument').style.display = 'none';
+            printContainer.style.display = 'block';
+
+            window.print();
+
+            // Revert back to normal prescription mode after printing
+            document.getElementById('printDocument').style.display = 'flex';
+            printContainer.style.display = 'none';
+        };
+
+        window.openAnalyticsModal = () => {
+            closeModal('settingsModal');
+            document.getElementById('analyticsModal').style.display = 'flex';
+            setAnalyticsMode('day'); // Defaults to Today's date
+        };
+
+        window.setAnalyticsMode = (mode) => {
+            currentAnaMode = mode;
+            ['day', 'week', 'year'].forEach(m => document.getElementById(`btn-ana-${m}`).classList.remove('active'));
+            document.getElementById(`btn-ana-${mode}`).classList.add('active');
+
+            const input = document.getElementById('analyticsDateInput');
+            const now = new Date();
+
+            if (mode === 'day') {
+                input.type = 'date';
+                // Adjust for local timezone offset so it perfectly matches today
+                const offset = now.getTimezoneOffset() * 60000;
+                input.value = (new Date(now - offset)).toISOString().split('T')[0];
+            } else if (mode === 'week') {
+                input.type = 'week';
+                // Calculate current ISO week
+                const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+                input.value = `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+            } else if (mode === 'year') {
+                input.type = 'number';
+                input.min = '2000';
+                input.max = '2100';
+                input.value = now.getFullYear();
+            }
+            renderAnalyticsData();
+        };
+
+        window.renderAnalyticsData = () => {
+            const inputVal = document.getElementById('analyticsDateInput').value;
+            if (!inputVal) return;
+
+            let filtered = [];
+
+            allPatients.forEach(p => {
+                let pDateObj = null;
+                // Parse Firestore timestamp or fallback to regDate string
+                if (p.timestamp && typeof p.timestamp.toDate === 'function') {
+                    pDateObj = p.timestamp.toDate();
+                } else if (p.regDate) {
+                    pDateObj = new Date(p.regDate);
+                }
+
+                if (!pDateObj || isNaN(pDateObj)) return; 
+
+                if (currentAnaMode === 'day') {
+                    const selectedDate = new Date(inputVal);
+                    if (pDateObj.getFullYear() === selectedDate.getFullYear() &&
+                        pDateObj.getMonth() === selectedDate.getMonth() &&
+                        pDateObj.getDate() === selectedDate.getDate()) {
+                        filtered.push(p);
+                    }
+                } else if (currentAnaMode === 'week') {
+                    const [yearStr, weekStr] = inputVal.split('-W');
+                    if(yearStr && weekStr) {
+                        const targetYear = parseInt(yearStr);
+                        const targetWeek = parseInt(weekStr);
+
+                        const d = new Date(Date.UTC(pDateObj.getFullYear(), pDateObj.getMonth(), pDateObj.getDate()));
+                        const dayNum = d.getUTCDay() || 7;
+                        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                        const pWeekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+                        const pYear = d.getUTCFullYear();
+
+                        if (pYear === targetYear && pWeekNo === targetWeek) {
+                            filtered.push(p);
+                        }
+                    }
+                } else if (currentAnaMode === 'year') {
+                    if (pDateObj.getFullYear() === parseInt(inputVal)) {
+                        filtered.push(p);
+                    }
+                }
+            });
+
+            // Sort newest patients at the top
+            filtered.sort((a, b) => {
+                const tA = a.timestamp && typeof a.timestamp.toMillis === 'function' ? a.timestamp.toMillis() : 0;
+                const tB = b.timestamp && typeof b.timestamp.toMillis === 'function' ? b.timestamp.toMillis() : 0;
+                return tB - tA;
+            });
+
+            currentAnalyticsData = filtered; // Stores it for the Print function!
+            document.getElementById('analyticsTotalCount').innerText = filtered.length;
+
+            const tbody = document.getElementById('analyticsTableBody');
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; font-size: 16px; color: #9ca3af;">No patients registered during this period.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                let timeStr = "-";
+                let dateStr = p.regDate || "-";
+
+                // Format the exact time they were registered
+                if (p.timestamp && typeof p.timestamp.toDate === 'function') {
+                    const d = p.timestamp.toDate();
+                    timeStr = d.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+                    dateStr = d.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+                }
+
+                const displayReg = p.regNo === 'OLD' ? '<span style="background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:12px; color:#4b5563;">OLD</span>' : '#' + (p.regNo || '?');
+
+                tbody.innerHTML += `
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 12px; font-weight: bold; color: var(--primary);">${displayReg}</td>
+                        <td style="padding: 12px; font-weight: bold;">${p.name}</td>
+                        <td style="padding: 12px; text-align: center; color: #4b5563;">${p.age}Y / ${p.sex}</td>
+                        <td style="padding: 12px; color: #4b5563;">${dateStr}</td>
+                        <td style="padding: 12px; color: #4b5563; font-weight: 600;">${timeStr}</td>
+                    </tr>
+                `;
+            });
         };
 
         async function initApp() {
@@ -2073,7 +2320,7 @@ function populateDatalist() {
                     d5: document.getElementById(`d-5-${rid}`)?.checked || false,
                     d10: document.getElementById(`d-10-${rid}`)?.checked || false,
                     d15: document.getElementById(`d-15-${rid}`)?.checked || false,
-                    d30: document.getElementById(`d-30-${rid}`)?.checked || false
+                    d20: document.getElementById(`d-30-${rid}`)?.checked || false
                 });
             }
 
@@ -2230,7 +2477,7 @@ function populateDatalist() {
                         if (d.d5) document.getElementById(`d-5-${rid}`).checked = true;
                         if (d.d10) document.getElementById(`d-10-${rid}`).checked = true;
                         if (d.d15) document.getElementById(`d-15-${rid}`).checked = true;
-                        if (d.d30) document.getElementById(`d-30-${rid}`).checked = true;
+                        if (d.d20) document.getElementById(`d-30-${rid}`).checked = true;
 
                         if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
                             const fixedCb = document.querySelector(`input[name="fixed-t-${rid}"][value="${d.t}"]`);
@@ -2524,7 +2771,7 @@ function populateDatalist() {
         };
         
         window.setDurationChk = (rid, days) => {
-            [5, 10, 15, 30].forEach(d => {
+            [5, 10, 15, 20].forEach(d => {
                 const box = document.getElementById(`d-${d}-${rid}`);
                 if(d !== days) box.checked = false;
             });
@@ -2620,8 +2867,7 @@ function populateDatalist() {
                 </div>
                 
                 <div class="col-days"><label>Duration</label><select id="d-preset-${rowCount}" onchange="handleDurationChange(${rowCount})"><option value="">Select</option><option value="5">5 Days</option><option value="10">10 Days</option><option value="15">15 Days</option><option value="30">1 Month</option><option value="60">2 Months</option><option value="90">3 Months</option><option value="120">4 Months</option><option value="150">5 Months</option><option value="180">6 Months</option><option value="manual">Manual</option></select>
-                <div class="duration-checks"><label class="dur-check-label"><input type="checkbox" id="d-5-${rowCount}" onclick="setDurationChk(${rowCount},5)"> 5d</label><label class="dur-check-label"><input type="checkbox" id="d-10-${rowCount}" onclick="setDurationChk(${rowCount},10)"> 10d</label><label class="dur-check-label"><input type="checkbox" id="d-15-${rowCount}" onclick="setDurationChk(${rowCount},15)"> 15d</label><label class="dur-check-label"><input type="checkbox" id="d-30-${rowCount}" onclick="setDurationChk(${rowCount},30)"> 1m</label></div>
-                <div id="d-manual-container-${rowCount}" style="display:none; margin-top:5px;"><input type="number" id="d-num-${rowCount}" style="width:50px" oninput="calculateTotal(${rowCount})"><select id="d-unit-${rowCount}" onchange="calculateTotal(${rowCount})"><option value="1">Days</option><option value="30">Months</option></select></div></div>
+<div class="duration-checks"><label class="dur-check-label"><input type="checkbox" id="d-5-${rowCount}" onclick="setDurationChk(${rowCount},5)"> 5d</label><label class="dur-check-label"><input type="checkbox" id="d-10-${rowCount}" onclick="setDurationChk(${rowCount},10)"> 10d</label><label class="dur-check-label"><input type="checkbox" id="d-15-${rowCount}" onclick="setDurationChk(${rowCount},15)"> 15d</label><label class="dur-check-label"><input type="checkbox" id="d-20-${rowCount}" onclick="setDurationChk(${rowCount},20)"> 20d</label></div>                <div id="d-manual-container-${rowCount}" style="display:none; margin-top:5px;"><input type="number" id="d-num-${rowCount}" style="width:50px" oninput="calculateTotal(${rowCount})"><select id="d-unit-${rowCount}" onchange="calculateTotal(${rowCount})"><option value="1">Days</option><option value="30">Months</option></select></div></div>
                 
                 <div class="col-total">
                     <label>Total</label>
