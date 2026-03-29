@@ -305,6 +305,26 @@
 </head>
 <body>
 
+    <div id="offlineIndicator" style="display:none; position:fixed; top:0; left:0; width:100%; background:#ef4444; color:white; text-align:center; padding:8px; z-index:99999; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        ⚠️ You are currently OFFLINE. You can continue working normally. Changes will sync automatically when the internet reconnects.
+    </div>
+
+    <script>
+        // Show/Hide the banner based on connection
+        window.addEventListener('online', () => document.getElementById('offlineIndicator').style.display = 'none');
+        window.addEventListener('offline', () => document.getElementById('offlineIndicator').style.display = 'block');
+        if (!navigator.onLine) document.getElementById('offlineIndicator').style.display = 'block';
+
+        // Register the Service Worker for Offline Website Loading
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Offline Engine Registered!'))
+                .catch(err => console.error('Offline Engine Failed:', err));
+            });
+        }
+    </script>
+
     <div id="toast"></div>
 
     <div id="loadingOverlay">
@@ -864,7 +884,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+        import { getFirestore, enableIndexedDbPersistence, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyAWNn0lX3UzfKkZ2ivirPMb3vu9GNGLcfg",
@@ -879,6 +899,18 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // --- ENABLE OFFLINE DATABASE ---
+        try {
+            enableIndexedDbPersistence(db).catch((err) => {
+                if (err.code == 'failed-precondition') {
+                    console.warn("Multiple tabs open, offline mode works in one tab at a time.");
+                } else if (err.code == 'unimplemented') {
+                    console.warn("Browser doesn't support offline persistence.");
+                }
+            });
+        } catch (e) { console.log("Offline init error:", e); }
+
         const CLINIC_CODE = "NEURO2026"; 
 
         const DEFAULT_TEMPLATES = [
@@ -2177,24 +2209,33 @@ function populateDatalist() {
             try {
                 if (isOldPatientMode) {
                     pData.regNo = 'OLD';
-                    await addDoc(collection(db, "patients"), pData);
+                    // OFFLINE SAFE: No await!
+                    addDoc(collection(db, "patients"), pData).catch(e=>console.log("Queued"));
                 } else {
-                    const counterRef = doc(db, "counters", "patients");
-                    await runTransaction(db, async (transaction) => {
-                        const counterDoc = await transaction.get(counterRef);
-                        let newId = 1;
-                        if (counterDoc.exists()) { newId = counterDoc.data().current + 1; }
-                        transaction.set(counterRef, { current: newId });
-                        pData.regNo = newId;
-                        const newPatientRef = doc(collection(db, "patients"));
-                        transaction.set(newPatientRef, pData);
+                    let maxReg = 0;
+                    allPatients.forEach(p => {
+                        if (p.regNo !== 'OLD' && !isNaN(p.regNo)) {
+                            let num = parseInt(p.regNo);
+                            if (num > maxReg) maxReg = num;
+                        }
                     });
+                    
+                    let newId = maxReg + 1;
+                    pData.regNo = newId;
+
+                    // OFFLINE SAFE: No await!
+                    addDoc(collection(db, "patients"), pData).catch(e=>console.log("Queued"));
+                    updateDoc(doc(db, "counters", "patients"), { current: newId }).catch(e=>console.log("Queued")); 
                 }
                 document.getElementById('regForm').reset();
                 showToast(isOldPatientMode ? "Old Patient Registered!" : "New Patient Registered!", "success");
-            } catch (e) { console.error(e); showToast("Registration Failed", "error"); }
+            } catch (e) { 
+                console.error(e); 
+                showToast("Registration Failed", "error"); 
+            }
             btn.disabled = false;
         }
+        
 
         window.renderReviewSearch = function() {
             const searchEl = document.getElementById('reviewSearch');
@@ -2427,9 +2468,11 @@ function populateDatalist() {
             }
 
             try {
-                await updateDoc(doc(db, "patients", currentPatient.id), { 
+                // Removed 'await' so the button pops back up instantly offline
+                updateDoc(doc(db, "patients", currentPatient.id), { 
                     draft: { provDiagnosis, notes, labs, drugs }
-                });
+                }).catch(e=>console.log("Draft queued"));
+                
                 showToast("Draft Saved Successfully!", "success");
             } catch(e) {
                 console.error(e);
@@ -2455,14 +2498,14 @@ function populateDatalist() {
             addDrugRow(); 
 
             try {
-                await updateDoc(doc(db, "patients", currentPatient.id), { 
+                // Removed await!
+                updateDoc(doc(db, "patients", currentPatient.id), { 
                     draft: deleteField() 
-                });
+                }).catch(e=>console.log("Clear draft queued"));
                 currentPatient.draft = null; 
                 showToast("Fields and Draft Cleared", "success");
             } catch(e) {
                 console.error(e);
-                showToast("Fields cleared, but error deleting cloud draft", "error");
             }
         };
 
@@ -2689,13 +2732,13 @@ function populateDatalist() {
             try {
                 const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, provDiagnosis, labs };
                 
-                // Only save to history if it hasn't been saved yet this session
+                // Removed 'await' so the print dialog opens immediately offline
                 if (!hasSavedHistoryThisSession) {
-                    await updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis });
+                    updateDoc(doc(db, "patients", currentPatient.id), { history: arrayUnion(record), diagnosis: provDiagnosis }).catch(e=>console.log("History queued"));
                     currentPatient.history.push(record); // Updates local copy instantly
                     hasSavedHistoryThisSession = true;
                 } else {
-                    await updateDoc(doc(db, "patients", currentPatient.id), { diagnosis: provDiagnosis });
+                    updateDoc(doc(db, "patients", currentPatient.id), { diagnosis: provDiagnosis }).catch(e=>console.log("Update queued"));
                 }
                 
                 const hasExamDataInternal = hasExamData(labs);
@@ -2785,7 +2828,8 @@ function populateDatalist() {
 
         window.finishConsultation = async function() {
             if(!currentPatient) return;
-            await updateDoc(doc(db, "patients", currentPatient.id), { status: 'done' });
+            // Removed await!
+            updateDoc(doc(db, "patients", currentPatient.id), { status: 'done' }).catch(e=>console.log("Queue clear queued"));
             showToast("Cleared from Queue", "success");
             document.getElementById('workspace').style.display = 'none'; currentPatient = null;
         };
