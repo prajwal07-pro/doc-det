@@ -2200,7 +2200,7 @@ function populateDatalist() {
                 phone: document.getElementById('regPhone').value, 
                 address: document.getElementById('regAddress').value, 
                 diagnosis: isOldPatientMode ? "" : document.getElementById('regDiagnosis').value,
-                regDate: new Date().toLocaleDateString(), 
+                regDate: new Date().toLocaleDateString('en-GB'), 
                 timestamp: serverTimestamp(), 
                 status: 'waiting', 
                 history: []
@@ -2514,13 +2514,26 @@ function populateDatalist() {
             hasSavedHistoryThisSession = false; // Resets when a new patient is clicked
             document.getElementById('pNameDisplay').innerText = p.name; 
             
+            // Extract, Split, and Swap the Date
+            let displayDate = p.regDate || '-';
+            if (displayDate !== '-' && displayDate.includes('/')) {
+                let parts = displayDate.split('/');
+                if (parts.length === 3) {
+                    // Check if the middle number is greater than 12 (which means it is definitely the Day)
+                    // If so, swap the Month (parts[0]) and the Day (parts[1])!
+                    if (parseInt(parts[1]) > 12) {
+                        displayDate = `${parts[1]}/${parts[0]}/${parts[2]}`;
+                    }
+                }
+            }
+
             if (p.regNo === 'OLD') {
-                document.getElementById('pDetailsDisplay').innerText = `OLD | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | 📅 First Visit: ${p.regDate || '-'}`;
+                document.getElementById('pDetailsDisplay').innerText = `OLD | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | 📅 First Visit: ${displayDate}`;
                 document.getElementById('section-personal-docs').style.display = 'none';
                 document.getElementById('section-prov-diag').style.display = 'none';
                 document.getElementById('section-on-exam').style.display = 'none';
             } else {
-                document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | 📅 First Visit: ${p.regDate || '-'}`;
+                document.getElementById('pDetailsDisplay').innerText = `#${p.regNo || '?'} | ${p.age}Y / ${p.sex} | 📞 ${p.phone || '-'} | 📅 First Visit: ${displayDate}`;
                 document.getElementById('section-personal-docs').style.display = 'block';
                 document.getElementById('section-prov-diag').style.display = 'block';
                 document.getElementById('section-on-exam').style.display = 'block';
@@ -2730,7 +2743,7 @@ function populateDatalist() {
 
             btn.disabled = true;
             try {
-                const record = { date: new Date().toLocaleDateString(), meds: drugs, notes, provDiagnosis, labs };
+                const record = { date: new Date().toLocaleDateString('en-GB'), meds: drugs, notes, provDiagnosis, labs };
                 
                 // Removed 'await' so the print dialog opens immediately offline
                 if (!hasSavedHistoryThisSession) {
