@@ -390,6 +390,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editPatId">
+                <div class="form-group"><label>Registration No. (Type a number or 'OLD')</label><input type="text" id="editPatRegNo" style="border-color: var(--primary);"></div>
                 <div class="form-group"><label>Patient Name</label><input type="text" id="editPatName"></div>
                 <div class="grid-2">
                     <div class="form-group"><label>Age</label><input type="number" id="editPatAge"></div>
@@ -536,6 +537,13 @@
                     <div class="form-group"><label>Doctor Chamber Lock</label><select id="set-doctorLockEnabled"><option value="false">Off</option><option value="true">On</option></select></div>
                     <div class="form-group"><label>Lock Password</label><input type="text" id="set-doctorPassword" placeholder="Set Password"></div>
                     <div class="form-group"><label>Queue Bulk Select</label><select id="set-showQueueCheckboxes"><option value="false">Hidden</option><option value="true">Visible</option></select></div>
+                </div>
+
+                <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Database Maintenance</h5>
+                <p style="font-size:13px; color:#6b7280; margin-top:5px; margin-bottom:15px;">Use these tools to safely and automatically fix numbering sequence issues.</p>
+                <div class="grid-2" style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" onclick="autoFixDuplicates()">✨ Auto-Fix Duplicates</button>
+                    <button class="btn btn-secondary" onclick="syncRegistrationCounter()">🔄 Sync Counter</button>
                 </div>
 
                 <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Chamber Buttons Display</h5>
@@ -993,6 +1001,92 @@
             applySettings();
             closeModal('settingsModal');
             showToast("Settings Saved!", "success");
+        };
+
+        window.autoFixDuplicates = async () => {
+            if(!confirm("This will automatically find patients with duplicate registration numbers and assign them new, unique numbers at the very end of your queue. Proceed?")) return;
+            
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                // 1. Find the current absolute highest number
+                let maxReg = 0;
+                let validPatients = allPatients.filter(p => p.regNo !== 'OLD' && !isNaN(p.regNo));
+
+                validPatients.forEach(p => {
+                    let num = parseInt(p.regNo);
+                    if (num > maxReg) maxReg = num;
+                });
+
+                // 2. Sort patients by timestamp (oldest first) so original patients keep their numbers
+                validPatients.sort((a, b) => {
+                    const tA = a.timestamp && typeof a.timestamp.toMillis === 'function' ? a.timestamp.toMillis() : 0;
+                    const tB = b.timestamp && typeof b.timestamp.toMillis === 'function' ? b.timestamp.toMillis() : 0;
+                    return tA - tB;
+                });
+
+                let seenRegNos = new Set();
+                let fixedCount = 0;
+                const batch = writeBatch(db);
+
+                // 3. Scan and fix duplicates
+                for (let p of validPatients) {
+                    let currentReg = parseInt(p.regNo);
+                    
+                    if (seenRegNos.has(currentReg)) {
+                        // We found a duplicate! Assign them the next highest number
+                        maxReg++; 
+                        const newReg = maxReg;
+                        batch.update(doc(db, "patients", p.id), { regNo: newReg });
+                        seenRegNos.add(newReg); 
+                        fixedCount++;
+                    } else {
+                        // First time seeing this number, mark it as safe
+                        seenRegNos.add(currentReg);
+                    }
+                }
+
+                // 4. Save to database
+                if (fixedCount > 0) {
+                    batch.update(doc(db, "counters", "patients"), { current: maxReg });
+                    await batch.commit();
+                    showToast(`Successfully fixed ${fixedCount} duplicate patients!`, "success");
+                } else {
+                    showToast("No duplicates found! Everything is perfect.", "success");
+                }
+
+            } catch(e) {
+                console.error(e);
+                showToast("Error fixing duplicates", "error");
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
+        };
+
+        window.syncRegistrationCounter = async () => {
+            if(!confirm("This will scan all patients and fix the Registration Counter to match your highest number. Proceed?")) return;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                let maxReg = 0;
+                
+                // Scan all patients to find the absolute highest number
+                allPatients.forEach(p => {
+                    if (p.regNo !== 'OLD' && !isNaN(p.regNo)) {
+                        let num = parseInt(p.regNo);
+                        if (num > maxReg) maxReg = num;
+                    }
+                });
+                
+                if (maxReg > 0) {
+                    // Update the Firebase counter to match the highest number found
+                    await updateDoc(doc(db, "counters", "patients"), { current: maxReg });
+                    showToast(`Counter fixed! Next patient will be #${maxReg + 1}`, "success");
+                } else {
+                    showToast("No valid registration numbers found to sync.", "error");
+                }
+            } catch(e) {
+                console.error(e);
+                showToast("Error syncing counter", "error");
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
         };
 
         function applySettings() {
@@ -2016,6 +2110,7 @@ function populateDatalist() {
             const p = allPatients.find(x => x.id === id);
             if(!p) return;
             document.getElementById('editPatId').value = p.id;
+            document.getElementById('editPatRegNo').value = p.regNo || '';
             document.getElementById('editPatName').value = p.name || '';
             document.getElementById('editPatAge').value = p.age || '';
             document.getElementById('editPatSex').value = p.sex || '';
@@ -2027,6 +2122,13 @@ function populateDatalist() {
 
         window.savePatientEdit = async () => {
             const id = document.getElementById('editPatId').value;
+            
+            // Get the new Reg No and format it correctly
+            let regNo = document.getElementById('editPatRegNo').value.trim();
+            if (regNo !== 'OLD' && !isNaN(regNo) && regNo !== '') {
+                regNo = parseInt(regNo); // Convert back to a real number for sorting
+            }
+            
             const name = document.getElementById('editPatName').value;
             const age = document.getElementById('editPatAge').value;
             const sex = document.getElementById('editPatSex').value;
@@ -2038,7 +2140,7 @@ function populateDatalist() {
 
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
-                await updateDoc(doc(db, "patients", id), { name, age, sex, phone, address, diagnosis });
+                await updateDoc(doc(db, "patients", id), { regNo, name, age, sex, phone, address, diagnosis });
                 closeModal('editPatientModal');
                 showToast("Patient Updated!", "success");
             } catch(e) {
