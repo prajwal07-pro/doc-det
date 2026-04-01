@@ -561,18 +561,12 @@
 
                 <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Database Maintenance</h5>
                 <div style="background:#f9fafb; padding:15px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:20px;">
-                    <p style="margin-top:0; margin-bottom:15px; font-size:13px; color:#4b5563;">Use these tools to safely and automatically fix numbering sequence issues, or download a local backup.</p>
+                    <p style="margin-top:0; margin-bottom:15px; font-size:13px; color:#4b5563;">Use these tools to safely and automatically fix numbering sequence issues.</p>
                     <div class="grid-2" style="margin-bottom: 10px;">
                         <button class="btn btn-secondary" onclick="autoFixDuplicates()">✨ Auto-Fix Duplicates</button>
-                        <button class="btn btn-green" style="width:100%; margin-top:10px;" onclick="downloadFullSystemBackup()">📦 Download Full Master Backup</button>
                         <button class="btn btn-secondary" onclick="syncRegistrationCounter()">🔄 Sync Counter</button>
                     </div>
-                    <button class="btn btn-blue" style="width:100%; margin-bottom: 10px;" onclick="downloadDatabaseBackup()">💾 Download Patient Database Backup (.json)</button>
-                    
-                    <label class="btn btn-yellow" style="width:100%; cursor:pointer; color: black;">
-                        📂 Upload & Restore Backup File
-                        <input type="file" id="restoreBackupFile" accept=".json" style="display:none;" onchange="restoreSystemBackup(event)">
-                    </label>
+                    <button class="btn btn-green" style="width:100%; margin-top:10px;" onclick="downloadFullSystemBackup()">📦 Download Full Master Backup</button>
                 </div>
 
                 <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Chamber Buttons Display</h5>
@@ -920,8 +914,6 @@
             });
         } catch (e) { console.log("Offline init error:", e); }
 
-        const CLINIC_CODE = "NEURO2026"; 
-
         const DEFAULT_TEMPLATES = [
             { name: "Headache", subtypes: ["Migraine", "Tension", "Cluster", "Sinusitis"], durations: ["5 Days", "10 Days", "15 Days", "1 Month"] },
             { name: "Epilepsy", subtypes: ["GTCS", "Focal", "Absence", "Myoclonic"], durations: ["1 Month", "2 Months", "3 Months", "6 Months"] },
@@ -1044,41 +1036,6 @@
             showToast("Settings Saved!", "success");
         };
 
-        window.downloadDatabaseBackup = () => {
-            if (!allPatients || allPatients.length === 0) {
-                return showToast("No patient data available to backup.", "error");
-            }
-
-            try {
-                // Convert the allPatients array into a cleanly formatted JSON string
-                const dataStr = JSON.stringify(allPatients, null, 2);
-                
-                // Create a Blob (a file-like object) from the string
-                const blob = new Blob([dataStr], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                
-                // Generate the file name with today's date (e.g., Neuro_Backup_27-03-2026.json)
-                const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-                const fileName = `Neuro_Backup_${dateStr}.json`;
-
-                // Create a temporary hidden link and click it to trigger the download
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                
-                // Clean up
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                showToast("Backup downloaded successfully!", "success");
-            } catch (err) {
-                console.error(err);
-                showToast("Failed to generate backup.", "error");
-            }
-        };
-
         window.downloadFullSystemBackup = () => {
             try {
                 // 1. Gather absolutely everything into one giant object
@@ -1190,75 +1147,6 @@
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
-        window.restoreSystemBackup = async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!confirm("⚠️ WARNING: This will upload all data from the backup into your live Firebase database. Existing records with the same IDs will be overwritten. Proceed?")) {
-                event.target.value = ''; // Reset file input
-                return;
-            }
-
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const backup = JSON.parse(e.target.result);
-                    
-                    // 1. Restore Local Settings
-                    if (backup.settings) {
-                        localStorage.setItem('neuroSettings', JSON.stringify(backup.settings));
-                        applySettings();
-                    }
-
-                    // 2. Upload Data to Firestore
-                    const uploadCollection = async (collectionName, dataArray) => {
-                        if (!dataArray || !dataArray.length) return;
-                        
-                        // We use setDoc to ensure the old Firebase IDs are preserved exactly
-                        const promises = dataArray.map(item => {
-                            const { id, ...data } = item;
-                            if (id) {
-                                return setDoc(doc(db, collectionName, id), data);
-                            } else {
-                                return addDoc(collection(db, collectionName), data);
-                            }
-                        });
-                        await Promise.all(promises);
-                    };
-
-                    await uploadCollection('patients', backup.patients);
-                    await uploadCollection('medicines', backup.medicines);
-                    await uploadCollection('clinicalTemplates', backup.clinicalTemplates);
-                    await uploadCollection('diagnosisTemplates', backup.diagnosisTemplates);
-
-                    // 3. Sync the Patient Counter
-                    let maxReg = 0;
-                    if (backup.patients) {
-                        backup.patients.forEach(p => {
-                            if (p.regNo !== 'OLD' && !isNaN(p.regNo)) { 
-                                let num = parseInt(p.regNo); 
-                                if (num > maxReg) maxReg = num; 
-                            }
-                        });
-                    }
-                    await setDoc(doc(db, "counters", "patients"), { current: maxReg });
-
-                    showToast("Database Restored Successfully!", "success");
-                    
-                } catch (err) {
-                    console.error("Restore failed:", err);
-                    alert("Error restoring backup: " + err.message);
-                    showToast("Failed to restore backup", "error");
-                } finally {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    event.target.value = ''; 
-                }
-            };
-            reader.readAsText(file);
-        };
-
         window.syncRegistrationCounter = async () => {
             if(!confirm("This will scan all patients and fix the Registration Counter to match your highest number. Proceed?")) return;
             document.getElementById('loadingOverlay').style.display = 'flex';
@@ -1360,17 +1248,6 @@
             }
         });
 
-        window.skipLoginTest = () => {
-            // Hide the login screen and show the main app
-            document.getElementById('authContainer').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'block';
-            
-            // Initialize the database listeners
-            initApp();
-            
-            showToast("Entered Offline Test Mode!", "success");
-        };
-
         window.login = async () => {
             const email = document.getElementById('loginEmail').value, pass = document.getElementById('loginPass').value;
             if(!email || !pass) return showToast("Enter credentials", "error");
@@ -1379,17 +1256,56 @@
         };
 
         window.signup = async () => {
-            const email = document.getElementById('regEmail').value, pass = document.getElementById('regPass').value, code = document.getElementById('regCode').value;
-            if(code !== CLINIC_CODE) return showToast("Wrong Code", "error");
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const enteredCode = document.getElementById('regCode').value;
+            
+            if(!email || !pass || !enteredCode) {
+                return showToast("Please fill all fields", "error");
+            }
+            
             document.getElementById('loadingOverlay').style.display = 'flex';
-            try { await createUserWithEmailAndPassword(auth, email, pass); } catch(e) { showToast(e.message, "error"); document.getElementById('loadingOverlay').style.display = 'none'; }
+            
+            try { 
+                // 1. Fetch the secret code from Firestore securely
+                const securityDoc = await getDoc(doc(db, "system", "security"));
+                
+                if (!securityDoc.exists() || !securityDoc.data().clinicCode) {
+                    throw new Error("Security configuration missing in database.");
+                }
+                
+                const actualClinicCode = securityDoc.data().clinicCode;
+                
+                // 2. Compare the codes
+                if(enteredCode !== actualClinicCode) {
+                    document.getElementById('loadingOverlay').style.display = 'none'; 
+                    return showToast("Wrong Clinic Code", "error");
+                }
+                
+                // 3. If correct, create the account
+                await createUserWithEmailAndPassword(auth, email, pass); 
+                showToast("Staff Account Created!", "success");
+                
+            } catch(e) { 
+                console.error(e);
+                showToast(e.message, "error"); 
+                document.getElementById('loadingOverlay').style.display = 'none'; 
+            }
+        };
+
+        window.toggleAuthForms = () => {
+            const l = document.getElementById('loginForm');
+            const s = document.getElementById('signupForm');
+            if(l.style.display === 'none') {
+                l.style.display = 'block';
+                s.style.display = 'none';
+            } else {
+                l.style.display = 'none';
+                s.style.display = 'block';
+            }
         };
 
         window.logout = () => { document.getElementById('loadingOverlay').style.display = 'flex'; signOut(auth); };
-        window.toggleAuthForms = () => {
-            const l = document.getElementById('loginForm'), s = document.getElementById('signupForm');
-            if(l.style.display==='none'){l.style.display='block';s.style.display='none'}else{l.style.display='none';s.style.display='block'}
-        };
 
         let currentAnaMode = 'day';
         let currentAnalyticsData = []; // Stores the data to be printed
