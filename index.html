@@ -560,10 +560,19 @@
                 </div>
 
                 <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Database Maintenance</h5>
-                <p style="font-size:13px; color:#6b7280; margin-top:5px; margin-bottom:15px;">Use these tools to safely and automatically fix numbering sequence issues.</p>
-                <div class="grid-2" style="margin-bottom: 20px;">
-                    <button class="btn btn-secondary" onclick="autoFixDuplicates()">✨ Auto-Fix Duplicates</button>
-                    <button class="btn btn-secondary" onclick="syncRegistrationCounter()">🔄 Sync Counter</button>
+                <div style="background:#f9fafb; padding:15px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:20px;">
+                    <p style="margin-top:0; margin-bottom:15px; font-size:13px; color:#4b5563;">Use these tools to safely and automatically fix numbering sequence issues, or download a local backup.</p>
+                    <div class="grid-2" style="margin-bottom: 10px;">
+                        <button class="btn btn-secondary" onclick="autoFixDuplicates()">✨ Auto-Fix Duplicates</button>
+                        <button class="btn btn-green" style="width:100%; margin-top:10px;" onclick="downloadFullSystemBackup()">📦 Download Full Master Backup</button>
+                        <button class="btn btn-secondary" onclick="syncRegistrationCounter()">🔄 Sync Counter</button>
+                    </div>
+                    <button class="btn btn-blue" style="width:100%; margin-bottom: 10px;" onclick="downloadDatabaseBackup()">💾 Download Patient Database Backup (.json)</button>
+                    
+                    <label class="btn btn-yellow" style="width:100%; cursor:pointer; color: black;">
+                        📂 Upload & Restore Backup File
+                        <input type="file" id="restoreBackupFile" accept=".json" style="display:none;" onchange="restoreSystemBackup(event)">
+                    </label>
                 </div>
 
                 <h5 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:5px;">Chamber Buttons Display</h5>
@@ -587,6 +596,7 @@
                 <div class="form-group"><label>Email Address</label><input type="email" id="loginEmail" placeholder="e.g. doctor@clinic.com"></div>
                 <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter Password"></div>
                 <button class="btn btn-primary" style="width:100%" onclick="login()">Login</button>
+                <button class="btn btn-yellow" style="width:100%; margin-top:10px; color:black;" onclick="skipLoginTest()">Skip Login (Offline Test)</button>
                 <div style="margin-top:15px; font-size:13px;"><a href="#" style="color:var(--primary); text-decoration:none;" onclick="toggleAuthForms()">Register New Staff</a></div>
             </div>
 
@@ -884,16 +894,16 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, enableIndexedDbPersistence, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+        import { getFirestore, enableIndexedDbPersistence, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField , setDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
-          apiKey: "AIzaSyAWNn0lX3UzfKkZ2ivirPMb3vu9GNGLcfg",
-          authDomain: "doc-det.firebaseapp.com",
-          projectId: "doc-det",
-          storageBucket: "doc-det.firebasestorage.app",
-          messagingSenderId: "618914142158",
-          appId: "1:618914142158:web:0ee8c35b219cf92533fd9f",
-          measurementId: "G-CR3H21D0MC"
+          apiKey: "AIzaSyCzdJCRug5FvjQbr3NF5WDDvyJbADT78jQ",
+          authDomain: "doc-det-d063d.firebaseapp.com",
+          projectId: "doc-det-d063d",
+          storageBucket: "doc-det-d063d.firebasestorage.app",
+          messagingSenderId: "1002051432849",
+          appId: "1:1002051432849:web:ae832064eee48dd629ea30",
+          measurementId: "G-YEY06DD4CL"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -1035,6 +1045,94 @@
             showToast("Settings Saved!", "success");
         };
 
+        window.downloadDatabaseBackup = () => {
+            if (!allPatients || allPatients.length === 0) {
+                return showToast("No patient data available to backup.", "error");
+            }
+
+            try {
+                // Convert the allPatients array into a cleanly formatted JSON string
+                const dataStr = JSON.stringify(allPatients, null, 2);
+                
+                // Create a Blob (a file-like object) from the string
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
+                // Generate the file name with today's date (e.g., Neuro_Backup_27-03-2026.json)
+                const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+                const fileName = `Neuro_Backup_${dateStr}.json`;
+
+                // Create a temporary hidden link and click it to trigger the download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast("Backup downloaded successfully!", "success");
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to generate backup.", "error");
+            }
+        };
+
+        window.downloadFullSystemBackup = () => {
+            try {
+                // 1. Gather absolutely everything into one giant object
+                const fullBackup = {
+                    exportDate: new Date().toISOString(),
+                    settings: JSON.parse(localStorage.getItem('neuroSettings')) || {},
+                    patients: allPatients || [],
+                    medicines: cloudMedicines || [],
+                    clinicalTemplates: clinicalTemplates || [],
+                    diagnosisTemplates: diagTemplates || []
+                };
+
+                // 2. Convert it to a readable JSON text
+                const dataStr = JSON.stringify(fullBackup, null, 2);
+                
+                // 3. Calculate exactly how much data this is
+                const bytes = new Blob([dataStr]).size;
+                const kb = (bytes / 1024).toFixed(2);
+                const mb = (bytes / (1024 * 1024)).toFixed(2);
+                const sizeMsg = bytes > 1048576 ? `${mb} MB` : `${kb} KB`;
+
+                // 4. Create the downloadable file
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
+                const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+                const fileName = `Neuro_FULL_BACKUP_${dateStr}.json`;
+
+                // 5. Trigger the download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // 6. Tell the user how much data was exported!
+                const successMsg = `Full system backup downloaded successfully!\n\nTotal File Size: ${sizeMsg}\nPatients: ${fullBackup.patients.length}\nMedicines: ${fullBackup.medicines.length}\nClinical Templates: ${fullBackup.clinicalTemplates.length}`;
+                
+                if (typeof showToast === "function") {
+                    showToast(`Backup Saved! Size: ${sizeMsg}`, "success");
+                }
+                alert(successMsg); // Shows a popup with the exact data counts
+                
+            } catch (err) {
+                console.error(err);
+                if (typeof showToast === "function") showToast("Failed to generate full backup.", "error");
+            }
+        };
+
         window.autoFixDuplicates = async () => {
             if(!confirm("This will automatically find patients with duplicate registration numbers and assign them new, unique numbers at the very end of your queue. Proceed?")) return;
             
@@ -1091,6 +1189,75 @@
                 showToast("Error fixing duplicates", "error");
             }
             document.getElementById('loadingOverlay').style.display = 'none';
+        };
+
+        window.restoreSystemBackup = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!confirm("⚠️ WARNING: This will upload all data from the backup into your live Firebase database. Existing records with the same IDs will be overwritten. Proceed?")) {
+                event.target.value = ''; // Reset file input
+                return;
+            }
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const backup = JSON.parse(e.target.result);
+                    
+                    // 1. Restore Local Settings
+                    if (backup.settings) {
+                        localStorage.setItem('neuroSettings', JSON.stringify(backup.settings));
+                        applySettings();
+                    }
+
+                    // 2. Upload Data to Firestore
+                    const uploadCollection = async (collectionName, dataArray) => {
+                        if (!dataArray || !dataArray.length) return;
+                        
+                        // We use setDoc to ensure the old Firebase IDs are preserved exactly
+                        const promises = dataArray.map(item => {
+                            const { id, ...data } = item;
+                            if (id) {
+                                return setDoc(doc(db, collectionName, id), data);
+                            } else {
+                                return addDoc(collection(db, collectionName), data);
+                            }
+                        });
+                        await Promise.all(promises);
+                    };
+
+                    await uploadCollection('patients', backup.patients);
+                    await uploadCollection('medicines', backup.medicines);
+                    await uploadCollection('clinicalTemplates', backup.clinicalTemplates);
+                    await uploadCollection('diagnosisTemplates', backup.diagnosisTemplates);
+
+                    // 3. Sync the Patient Counter
+                    let maxReg = 0;
+                    if (backup.patients) {
+                        backup.patients.forEach(p => {
+                            if (p.regNo !== 'OLD' && !isNaN(p.regNo)) { 
+                                let num = parseInt(p.regNo); 
+                                if (num > maxReg) maxReg = num; 
+                            }
+                        });
+                    }
+                    await setDoc(doc(db, "counters", "patients"), { current: maxReg });
+
+                    showToast("Database Restored Successfully!", "success");
+                    
+                } catch (err) {
+                    console.error("Restore failed:", err);
+                    alert("Error restoring backup: " + err.message);
+                    showToast("Failed to restore backup", "error");
+                } finally {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    event.target.value = ''; 
+                }
+            };
+            reader.readAsText(file);
         };
 
         window.syncRegistrationCounter = async () => {
@@ -1193,6 +1360,17 @@
                 document.getElementById('appContainer').style.display = 'none';
             }
         });
+
+        window.skipLoginTest = () => {
+            // Hide the login screen and show the main app
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            
+            // Initialize the database listeners
+            initApp();
+            
+            showToast("Entered Offline Test Mode!", "success");
+        };
 
         window.login = async () => {
             const email = document.getElementById('loginEmail').value, pass = document.getElementById('loginPass').value;
