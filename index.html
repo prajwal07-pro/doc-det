@@ -1820,13 +1820,17 @@
                                     </svg></button>
                             </div>
                             <select id="reviewTimeFilter"
-                                style="padding: 10px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; width: 130px;"
+                                style="padding: 10px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; width: 140px;"
                                 onchange="renderReviewSearch()">
                                 <option value="week">This Week</option>
                                 <option value="month">This Month</option>
                                 <option value="year">This Year</option>
+                                <option value="custom_date">Specific Date</option>
+                                <option value="custom_month">Specific Month</option>
                                 <option value="all">All Time</option>
                             </select>
+                            <input type="date" id="reviewCustomDate" style="display:none; padding: 10px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; width: 150px;" onchange="renderReviewSearch()">
+                            <input type="month" id="reviewCustomMonth" style="display:none; padding: 10px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; width: 150px;" onchange="renderReviewSearch()">
                             <select id="reviewSort"
                                 style="padding: 10px; border-radius: 6px; border: 2px solid var(--border); font-weight: bold; width: 140px;"
                                 onchange="renderReviewSearch()">
@@ -3796,48 +3800,65 @@
                 const searchEl = document.getElementById('reviewSearch');
                 const sortEl = document.getElementById('reviewSort');
                 const timeFilterEl = document.getElementById('reviewTimeFilter');
-            const container = document.getElementById('reviewList');
+                const container = document.getElementById('reviewList');
 
-            if (!searchEl || !sortEl || !container) return;
+                if (!searchEl || !sortEl || !container) return;
 
-            const term = searchEl.value.toLowerCase();
-            const sortVal = sortEl.value;
-            const timeFilter = timeFilterEl ? timeFilterEl.value : 'week';
+                const term = searchEl.value.toLowerCase();
+                const sortVal = sortEl.value;
+                const timeFilter = timeFilterEl ? timeFilterEl.value : 'week';
 
-            const now = new Date();
-            const currentWeek = getCurrentWeekStr();
-            container.innerHTML = "";
+                // Show/Hide custom date/month inputs dynamically based on dropdown choice
+                const customDateInput = document.getElementById('reviewCustomDate');
+                const customMonthInput = document.getElementById('reviewCustomMonth');
+                if (customDateInput) customDateInput.style.display = timeFilter === 'custom_date' ? 'block' : 'none';
+                if (customMonthInput) customMonthInput.style.display = timeFilter === 'custom_month' ? 'block' : 'none';
 
-            let filteredPatients = allPatients.filter(p => {
-                // 1. Text Search Filter
-                const matchSearch = (p.name && p.name.toLowerCase().includes(term)) ||
-                    (p.regNo && String(p.regNo).includes(term)) ||
-                    (p.age && String(p.age).includes(term)) ||
-                    (p.sex && p.sex.toLowerCase().startsWith(term));
+                const now = new Date();
+                const currentWeek = getCurrentWeekStr();
+                container.innerHTML = "";
 
-                if (!matchSearch) return false;
+                let filteredPatients = allPatients.filter(p => {
+                    // 1. Text Search Filter
+                    const matchSearch = (p.name && p.name.toLowerCase().includes(term)) ||
+                        (p.regNo && String(p.regNo).includes(term)) ||
+                        (p.age && String(p.age).includes(term)) ||
+                        (p.sex && p.sex.toLowerCase().startsWith(term));
 
-                // 2. Time Filter
-                if (timeFilter === 'all') return true;
+                    if (!matchSearch) return false;
 
-                const pDateObj = getPatientDateObj(p);
-                // If the date is missing or corrupted, ONLY show them in "All Time"
-        if (!pDateObj || isNaN(pDateObj)) {
-            return timeFilter === 'all'; 
-        }
+                    // 2. Time Filter
+                    if (timeFilter === 'all') return true;
 
-                if (timeFilter === 'day') {
-                    return pDateObj.toDateString() === now.toDateString();
-                } else if (timeFilter === 'week') {
-                    return getPatientWeekStr(p) === currentWeek;
-                } else if (timeFilter === 'month') {
-                    return pDateObj.getMonth() === now.getMonth() && pDateObj.getFullYear() === now.getFullYear();
-                } else if (timeFilter === 'year') {
-                    return pDateObj.getFullYear() === now.getFullYear();
-                }
+                    const pDateObj = getPatientDateObj(p);
+                    // If the date is missing or corrupted, ONLY show them in "All Time"
+                    if (!pDateObj || isNaN(pDateObj)) {
+                        return timeFilter === 'all'; 
+                    }
 
-                return true;
-            });
+                    if (timeFilter === 'day') {
+                        return pDateObj.toDateString() === now.toDateString();
+                    } else if (timeFilter === 'week') {
+                        return getPatientWeekStr(p) === currentWeek;
+                    } else if (timeFilter === 'month') {
+                        return pDateObj.getMonth() === now.getMonth() && pDateObj.getFullYear() === now.getFullYear();
+                    } else if (timeFilter === 'year') {
+                        return pDateObj.getFullYear() === now.getFullYear();
+                    } else if (timeFilter === 'custom_date') {
+                        if (!customDateInput || !customDateInput.value) return true; // Show all if nothing is selected yet
+                        const selectedDate = new Date(customDateInput.value);
+                        return pDateObj.getFullYear() === selectedDate.getFullYear() &&
+                               pDateObj.getMonth() === selectedDate.getMonth() &&
+                               pDateObj.getDate() === selectedDate.getDate();
+                    } else if (timeFilter === 'custom_month') {
+                        if (!customMonthInput || !customMonthInput.value) return true; // Show all if nothing is selected yet
+                        const [yearStr, monthStr] = customMonthInput.value.split('-');
+                        return pDateObj.getFullYear() === parseInt(yearStr) &&
+                               pDateObj.getMonth() === (parseInt(monthStr) - 1);
+                    }
+
+                    return true;
+                });
 
             const getSortNum = (r) => r === 'OLD' ? 0 : (parseInt(r) || 0);
             filteredPatients.sort((a, b) => {
