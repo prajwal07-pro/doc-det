@@ -1237,13 +1237,6 @@
         .print-only {
             display: none;
         }
-
-        /* Set Print Size Dynamically */
-        <style id="printPageStyle">@page {
-            margin: 8mm;
-            size: A4;
-        }
-    </style>
     </style>
 </head>
 
@@ -2202,7 +2195,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, enableIndexedDbPersistence, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion, serverTimestamp, getDocs, getDoc, deleteDoc, runTransaction, writeBatch, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCzdJCRug5FvjQbr3NF5WDDvyJbADT78jQ",
@@ -2216,18 +2209,11 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // --- ENABLE OFFLINE DATABASE ---
-        try {
-            enableIndexedDbPersistence(db).catch((err) => {
-                if (err.code == 'failed-precondition') {
-                    console.warn("Multiple tabs open, offline mode works in one tab at a time.");
-                } else if (err.code == 'unimplemented') {
-                    console.warn("Browser doesn't support offline persistence.");
-                }
-            });
-        } catch (e) { console.log("Offline init error:", e); }
+        
+        // --- ENABLE MODERN OFFLINE DATABASE WITH MULTI-TAB SUPPORT ---
+        const db = initializeFirestore(app, {
+            localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        });
 
         const DEFAULT_TEMPLATES = [
             { name: "Headache", subtypes: ["Migraine", "Tension", "Cluster", "Sinusitis"], durations: ["5 Days", "10 Days", "15 Days", "1 Month"] },
@@ -2258,12 +2244,23 @@
 
         let allPatients = [], waitingQueue = [], cloudMedicines = [], clinicalTemplates = [], diagTemplates = [];
         let groqApiKeys = [];
+        let dbListeners = []; // Array to hold active database listeners
         let currentPatient = null, rowCount = 0, customExamCount = 0;
+        
+        // --- SETTINGS CACHE ---
+        let cachedSettings = null;
+        function getCachedSettings() {
+            if (!cachedSettings) {
+                cachedSettings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            }
+            return cachedSettings;
+        }
 
         // --- HYBRID MIC STATE ---
         let recognition = null, isAutoMicOn = false, activeInputId = null;
         let mediaRecorder = null;
         let isGroqActive = false;
+        let globalAudioStream = null; // Keeps the mic "warm" for instant recording
         let forceStopMic = false;
         let isProcessing = false;
 
@@ -2277,14 +2274,18 @@
         let currentTemplateAction = null;
 
         // --- WEEKLY TRACKING HELPERS ---
-        function getCurrentWeekStr() {
-            const now = new Date();
-            const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        function calculateISOWeekString(dateObj) {
+            if (!dateObj || isNaN(dateObj)) return "";
+            const d = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
             const dayNum = d.getUTCDay() || 7;
             d.setUTCDate(d.getUTCDate() + 4 - dayNum);
             const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
             const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
             return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+        }
+
+        function getCurrentWeekStr() {
+            return calculateISOWeekString(new Date());
         }
 
         function getPatientDateObj(p) {
@@ -2301,22 +2302,17 @@
 
         function getPatientWeekStr(p) {
             const pDateObj = getPatientDateObj(p);
-            if (!pDateObj || isNaN(pDateObj)) return "";
-
-            const d = new Date(Date.UTC(pDateObj.getFullYear(), pDateObj.getMonth(), pDateObj.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-            return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+            return calculateISOWeekString(pDateObj);
         }
 
+        let toastTimeoutId;
         function showToast(msg, type = 'neutral') {
             const t = document.getElementById('toast');
+            clearTimeout(toastTimeoutId); // Clear old timer so it doesn't vanish early
             t.className = type;
             t.innerText = msg;
             t.classList.add('show');
-            setTimeout(() => { t.className = ''; }, 3000);
+            toastTimeoutId = setTimeout(() => { t.className = ''; }, 3000);
         }
 
         window.adjustFontSize = function (delta) {
@@ -2381,6 +2377,7 @@
                 showDate: document.getElementById('set-showDate').value
             };
             localStorage.setItem('neuroSettings', JSON.stringify(settings));
+            cachedSettings = settings; // Update the memory cache instantly
             applySettings();
             closeModal('settingsModal');
             showToast("Settings Saved!", "success");
@@ -2439,88 +2436,7 @@
             }
         };
 
-        window.autoFixDuplicates = async () => {
-            if (!confirm("This will find patients with duplicate registration numbers within the SAME WEEK and assign them unique numbers. Proceed?")) return;
-
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            try {
-                let fixedCount = 0;
-                const batch = writeBatch(db);
-                
-                let patientsByWeek = {};
-                allPatients.filter(p => p.regNo !== 'OLD' && !isNaN(p.regNo)).forEach(p => {
-                    const w = getPatientWeekStr(p);
-                    if (!patientsByWeek[w]) patientsByWeek[w] = [];
-                    patientsByWeek[w].push(p);
-                });
-
-                for (const week in patientsByWeek) {
-                    let weekPatients = patientsByWeek[week];
-                    weekPatients.sort((a, b) => {
-                        const tA = a.timestamp && typeof a.timestamp.toMillis === 'function' ? a.timestamp.toMillis() : 0;
-                        const tB = b.timestamp && typeof b.timestamp.toMillis === 'function' ? b.timestamp.toMillis() : 0;
-                        return tA - tB;
-                    });
-
-                    let seenRegNos = new Set();
-                    let maxRegInWeek = Math.max(0, ...weekPatients.map(p => parseInt(p.regNo)));
-
-                    for (let p of weekPatients) {
-                        let currentReg = parseInt(p.regNo);
-
-                        if (seenRegNos.has(currentReg)) {
-                            maxRegInWeek++;
-                            batch.update(doc(db, "patients", p.id), { regNo: maxRegInWeek });
-                            seenRegNos.add(maxRegInWeek);
-                            fixedCount++;
-                            
-                            if (week === getCurrentWeekStr()) {
-                                batch.update(doc(db, "counters", "patients"), { current: maxRegInWeek });
-                            }
-                        } else {
-                            seenRegNos.add(currentReg);
-                        }
-                    }
-                }
-
-                if (fixedCount > 0) {
-                    await batch.commit();
-                    showToast(`Successfully fixed ${fixedCount} duplicate patients!`, "success");
-                } else {
-                    showToast("No duplicates found! Everything is perfect.", "success");
-                }
-
-            } catch (e) {
-                console.error(e);
-                showToast("Error fixing duplicates", "error");
-            }
-            document.getElementById('loadingOverlay').style.display = 'none';
-        };
-
-        window.syncRegistrationCounter = async () => {
-            if (!confirm("This will scan and fix the Registration Counter to match your highest number FOR THE CURRENT WEEK. Proceed?")) return;
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            try {
-                let maxReg = 0;
-                const currentWeek = getCurrentWeekStr();
-
-                allPatients.forEach(p => {
-                    if (p.regNo !== 'OLD' && !isNaN(p.regNo)) {
-                        if (getPatientWeekStr(p) === currentWeek) {
-                            let num = parseInt(p.regNo);
-                            if (num > maxReg) maxReg = num;
-                        }
-                    }
-                });
-
-                await updateDoc(doc(db, "counters", "patients"), { current: maxReg });
-                showToast(`Counter fixed! Next patient will be #${maxReg + 1}`, "success");
-            } catch (e) {
-                console.error(e);
-                showToast("Error syncing counter", "error");
-            }
-            document.getElementById('loadingOverlay').style.display = 'none';
-        };
+        
 
         window.forceResetThisWeek = async () => {
             if (!confirm("This will take all patients registered THIS WEEK and re-number them starting from #1. Proceed?")) return;
@@ -2559,7 +2475,7 @@
         };
 
         function applySettings() {
-            const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
+            const settings = getCachedSettings();
 
             let css = `@page { margin: 10mm; size: ${settings.pageSize || 'A4'}; }`;
             if (settings.medStr === 'hidden') css += ` .col-weight { display: none !important; } .print-col-str { display: none !important; }`;
@@ -2688,7 +2604,12 @@
             }
         };
 
-        window.logout = () => { document.getElementById('loadingOverlay').style.display = 'flex'; signOut(auth); };
+        window.logout = () => { 
+            document.getElementById('loadingOverlay').style.display = 'flex'; 
+            dbListeners.forEach(unsub => unsub()); // Kill all active database streams
+            dbListeners = [];
+            signOut(auth); 
+        };
 
         let currentAnaMode = 'day';
         let currentAnalyticsData = []; // Stores the data to be printed
@@ -2863,6 +2784,7 @@
                 return;
             }
 
+            let analyticsHtml = "";
             filtered.forEach(p => {
                 let timeStr = "-";
                 let dateStr = p.regDate || "-";
@@ -2876,7 +2798,7 @@
 
                 const displayReg = p.regNo === 'OLD' ? '<span style="background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:12px; color:#4b5563;">OLD</span>' : '#' + (p.regNo || '?');
 
-                tbody.innerHTML += `
+                analyticsHtml += `
                     <tr style="border-bottom: 1px solid #f3f4f6;">
                         <td style="padding: 12px; font-weight: bold; color: var(--primary);">${displayReg}</td>
                         <td style="padding: 12px; font-weight: bold;">${p.name}</td>
@@ -2886,6 +2808,7 @@
                     </tr>
                 `;
             });
+            tbody.innerHTML = analyticsHtml;
         };
 
         async function initApp() {
@@ -2895,30 +2818,39 @@
             await seedTemplates();
             await seedDiagTemplates();
 
-            onSnapshot(doc(db, "system", "apikeys"), (d) => {
+            // Clear old listeners if initApp is somehow called twice
+            dbListeners.forEach(unsub => unsub());
+            dbListeners = [];
+
+            dbListeners.push(onSnapshot(doc(db, "system", "apikeys"), (d) => {
                 if (d.exists()) {
                     const data = d.data();
                     groqApiKeys = [data.groq1, data.groq2, data.groq3].filter(k => k);
                 }
-            });
+            }));
 
-            onSnapshot(query(collection(db, "patients"), orderBy("timestamp", "desc")), (s) => {
+            dbListeners.push(onSnapshot(query(collection(db, "patients"), orderBy("timestamp", "desc")), (s) => {
                 allPatients = s.docs.map(d => ({ id: d.id, ...d.data() }));
                 waitingQueue = allPatients.filter(p => p.status === 'waiting');
-                renderDoctorQueue(); renderReviewSearch();
-            });
-            onSnapshot(query(collection(db, "medicines"), orderBy("name")), (s) => {
+                
+                renderDoctorQueue(); 
+                setTimeout(() => { renderReviewSearch(); }, 100);
+            }));
+
+            dbListeners.push(onSnapshot(query(collection(db, "medicines"), orderBy("name")), (s) => {
                 cloudMedicines = s.docs.map(d => ({ id: d.id, ...d.data() }));
-                populateDatalist(); renderMedManagerList();
-            });
-            onSnapshot(collection(db, "clinicalTemplates"), (s) => {
+                renderMedManagerList();
+            }));
+
+            dbListeners.push(onSnapshot(collection(db, "clinicalTemplates"), (s) => {
                 clinicalTemplates = s.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderTemplateChips(); renderTemplateManagerList();
-            });
-            onSnapshot(collection(db, "diagnosisTemplates"), (s) => {
+            }));
+
+            dbListeners.push(onSnapshot(collection(db, "diagnosisTemplates"), (s) => {
                 diagTemplates = s.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderDiagTemplateChips(); renderDiagTemplateManagerList();
-            });
+            }));
 
             ['reviewSearch', 'regName', 'regAddress', 'regDiagnosis', 'provDiagnosis', 'docDetails', 'examBP', 'examPulse', 'labHB', 'labRBS', 'labCreatinine', 'testECG', 'testEEG', 'testNCV', 'testDoppler', 'testCTMRI', 'testOldReports'].forEach(attachMicListeners);
 
@@ -3076,8 +3008,11 @@
 
             if (isGroqActive) {
                 try {
-                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                    // Only ask for hardware permission ONCE and keep it warm
+                    if (!globalAudioStream) {
+                        globalAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                    mediaRecorder = new MediaRecorder(globalAudioStream, { mimeType: 'audio/webm' });
                     mediaRecorder.chunks = [];
                     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) e.target.chunks.push(e.data); };
                     mediaRecorder.start();
@@ -3112,7 +3047,7 @@
                 let mr = mediaRecorder;
                 mr.onstop = async () => {
                     let blob = new Blob(mr.chunks, { type: 'audio/webm' });
-                    mr.stream.getTracks().forEach(track => track.stop());
+                    // WE DELETED THE track.stop() LINE HERE! The mic stays warm!
 
                     if (blob.size < 100) {
                         isProcessing = false;
@@ -3124,8 +3059,10 @@
                     let groqText = null;
                     try {
                         groqText = await callGroqAPI(blob);
+                        if (!groqText) throw new Error("No text returned");
                     } catch (e) {
-                        console.error(e);
+                        console.error("AI Error:", e);
+                        showToast("⚠️ AI Mic Failed. Please type manually.", "error");
                     }
 
                     if (groqText) {
@@ -3332,8 +3269,17 @@
         window.toggleExamSection = function () {
             const body = document.getElementById('examContentBody');
             const icon = document.getElementById('examToggleIcon');
-            if (body.style.display === 'none') {
+            
+            // Check computed style to be perfectly safe
+            const isHidden = window.getComputedStyle(body).display === 'none';
+            
+            if (isHidden) {
                 body.style.display = 'block';
+                // Trigger auto-expand textareas to resize correctly when unhidden
+                body.querySelectorAll('.auto-expand').forEach(el => {
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
+                });
                 icon.innerText = '▲';
             } else {
                 body.style.display = 'none';
@@ -3355,6 +3301,7 @@
 
             const filtered = cloudMedicines.filter(m => m.name.toLowerCase().includes(val));
 
+            const fragment = document.createDocumentFragment();
             filtered.forEach(m => {
                 const div = document.createElement('div');
                 div.innerText = m.name;
@@ -3363,8 +3310,9 @@
                     dropdown.style.display = 'none';
                     handleMedicineInput(rid);
                 };
-                dropdown.appendChild(div);
+                fragment.appendChild(div);
             });
+            dropdown.appendChild(fragment);
 
             if (filtered.length === 0 && val.length > 2) {
                 dropdown.style.display = 'none';
@@ -3526,13 +3474,16 @@
 
         window.deleteMedicine = async function (id) { if (confirm("Delete?")) await deleteDoc(doc(db, "medicines", id)); }
 
+        let medSearchTimer;
         window.renderMedManagerList = function () {
-            const searchEl = document.getElementById('medManagerSearch');
-            if (!searchEl) return;
-            const term = searchEl.value.toLowerCase();
-            const container = document.getElementById('medManagerList');
-            if (!container) return;
-            container.innerHTML = "";
+            clearTimeout(medSearchTimer);
+            medSearchTimer = setTimeout(() => {
+                const searchEl = document.getElementById('medManagerSearch');
+                if (!searchEl) return;
+                const term = searchEl.value.toLowerCase();
+                const container = document.getElementById('medManagerList');
+                if (!container) return;
+                container.innerHTML = "";
 
             const filtered = cloudMedicines.filter(m => (m.name || '').toLowerCase().includes(term));
 
@@ -3541,9 +3492,10 @@
                 return;
             }
 
+            let medHtmlContent = "";
             filtered.forEach(m => {
                 const strengthsStr = (m.strengths || []).join(', ');
-                container.innerHTML += `
+                medHtmlContent += `
                     <div class="med-list-item">
                         <div><strong>${m.name}</strong> <br> <small style="color:#666">${strengthsStr}</small></div>
                         <div style="display:flex; gap:5px;">
@@ -3552,18 +3504,10 @@
                         </div>
                     </div>`;
             });
+            container.innerHTML = medHtmlContent;
+            }, 250); // Closes the timeout wrapper
         }
 
-        function populateDatalist() {
-            const dl = document.getElementById('allMedicines');
-            if (!dl) return; // Safety check
-            dl.innerHTML = "";
-            cloudMedicines.forEach(med => {
-                const opt = document.createElement('option');
-                opt.value = med.name;
-                dl.appendChild(opt);
-            });
-        }
         function setupListeners() {
             // Navigation is handled via inline onclick in HTML. Removed redundant listeners to prevent freezing.
             const regForm = document.getElementById('regForm');
@@ -3574,9 +3518,6 @@
 
             const btnPrint = document.getElementById('btnPrint');
             if (btnPrint) btnPrint.onclick = saveAndPrint;
-
-            const reviewSearch = document.getElementById('reviewSearch');
-            if (reviewSearch) reviewSearch.onkeyup = renderReviewSearch;
 
             const btnToggleHistory = document.getElementById('btnToggleHistory');
             if (btnToggleHistory) btnToggleHistory.onclick = toggleHistory;
@@ -3664,6 +3605,9 @@
             document.getElementById('regFormTitle').innerText = isOldPatientMode ? "Old Patient Registration" : "New Patient Registration";
             document.getElementById('btnToggleRegMode').innerText = isOldPatientMode ? "Switch to New Patient" : "Switch to Old Patient";
             document.getElementById('regDiagGroup').style.display = isOldPatientMode ? 'none' : 'block';
+            
+            // Wipe the inputs clean so data doesn't bleed across modes
+            document.getElementById('regForm').reset();
         };
 
         async function registerPatient() {
@@ -3725,10 +3669,13 @@
         }
 
 
+        let reviewSearchTimer;
         window.renderReviewSearch = function () {
-            const searchEl = document.getElementById('reviewSearch');
-            const sortEl = document.getElementById('reviewSort');
-            const timeFilterEl = document.getElementById('reviewTimeFilter');
+            clearTimeout(reviewSearchTimer);
+            reviewSearchTimer = setTimeout(() => {
+                const searchEl = document.getElementById('reviewSearch');
+                const sortEl = document.getElementById('reviewSort');
+                const timeFilterEl = document.getElementById('reviewTimeFilter');
             const container = document.getElementById('reviewList');
 
             if (!searchEl || !sortEl || !container) return;
@@ -3782,8 +3729,9 @@
                 return 0;
             });
 
+            let htmlContent = "";
             filteredPatients.forEach(p => {
-                container.innerHTML += `
+                htmlContent += `
         <div class="patient-list-item review-item" onclick="togglePatientDetails(this)">
             <div class="patient-list-header">
                 <div><strong>${p.name}</strong> <small>(${p.regNo === 'OLD' ? 'OLD' : '#' + (p.regNo || '?')} | ${p.age}Y/${p.sex})</small></div>
@@ -3800,10 +3748,12 @@
             </div>
         </div>`;
             });
+            container.innerHTML = htmlContent;
 
             if (filteredPatients.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding:20px; color:#ccc;">No patients found for this filter.</div>`;
             }
+            }, 250); // Closes the timeout wrapper
         };
 
         window.sendToDoctor = async (id) => { await updateDoc(doc(db, "patients", id), { status: 'waiting', timestamp: serverTimestamp() }); showToast("Sent to Doctor", "success"); };
@@ -3881,6 +3831,7 @@
             const settings = JSON.parse(localStorage.getItem('neuroSettings')) || defaultSettings;
             const showCheckboxes = settings.showQueueCheckboxes === 'true';
 
+            const fragment = document.createDocumentFragment();
             waitingQueue.forEach(p => {
                 const displayReg = p.regNo === 'OLD' ? 'OLD' : '#' + (p.regNo || '?');
                 const div = document.createElement('div');
@@ -3911,8 +3862,9 @@
                 content.onclick = () => selectPatient(p);
 
                 div.appendChild(content);
-                container.appendChild(div);
+                fragment.appendChild(div);
             });
+            container.appendChild(fragment);
 
             if (waitingQueue.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding:20px; color:#ccc;">No patients waiting...</div>`;
@@ -3930,10 +3882,13 @@
             }
         };
 
+        let isSavingDraft = false;
         window.saveDraft = async () => {
-            if (!currentPatient) return;
+            if (!currentPatient || isSavingDraft) return;
+            isSavingDraft = true;
+            
             const btn = document.querySelector('button[onclick="saveDraft()"]');
-            btn.disabled = true;
+            if (btn) btn.disabled = true;
 
             const provDiagnosis = document.getElementById('provDiagnosis').value;
             const notes = document.getElementById('docDetails').value;
@@ -3985,7 +3940,6 @@
             }
 
             try {
-                // Removed 'await' so the button pops back up instantly offline
                 updateDoc(doc(db, "patients", currentPatient.id), {
                     draft: { provDiagnosis, notes, labs, drugs }
                 }).catch(e => console.log("Draft queued"));
@@ -3995,12 +3949,20 @@
                 console.error(e);
                 showToast("Error saving draft", "error");
             } finally {
-                btn.disabled = false;
+                // Re-enable after a short visual delay
+                setTimeout(() => {
+                    if (btn) btn.disabled = false;
+                    isSavingDraft = false;
+                }, 1000);
             }
         };
 
         window.clearWorkspace = async () => {
             if (!currentPatient) return;
+            
+            // Hard stop the microphone so it doesn't dump transcribed text after clearing
+            forceStopMic = true;
+            if (activeInputId) stopListening();
 
             document.getElementById('provDiagnosis').value = '';
             document.getElementById('docDetails').value = '';
@@ -4031,17 +3993,14 @@
             hasSavedHistoryThisSession = false; // Resets when a new patient is clicked
             document.getElementById('pNameDisplay').innerText = p.name;
 
-            // Extract, Split, and Swap the Date
-            let displayDate = p.regDate || '-';
-            if (displayDate !== '-' && displayDate.includes('/')) {
-                let parts = displayDate.split('/');
-                if (parts.length === 3) {
-                    // Check if the middle number is greater than 12 (which means it is definitely the Day)
-                    // If so, swap the Month (parts[0]) and the Day (parts[1])!
-                    if (parseInt(parts[1]) > 12) {
-                        displayDate = `${parts[1]}/${parts[0]}/${parts[2]}`;
-                    }
-                }
+            // Accurately Format Date utilizing the database Timestamp
+            let displayDate = '-';
+            if (p.timestamp && typeof p.timestamp.toDate === 'function') {
+                // Generates strict DD/MM/YYYY based on the exact time of registration
+                displayDate = p.timestamp.toDate().toLocaleDateString('en-GB'); 
+            } else {
+                // Fallback only if the timestamp didn't sync yet (offline mode)
+                displayDate = p.regDate || '-';
             }
 
             if (p.regNo === 'OLD') {
@@ -4268,7 +4227,11 @@
                     currentPatient.history.push(record); // Updates local copy instantly
                     hasSavedHistoryThisSession = true;
                 } else {
-                    updateDoc(doc(db, "patients", currentPatient.id), { diagnosis: provDiagnosis }).catch(e => console.log("Update queued"));
+                    // Overwrite the last history entry to ensure medicine/lab corrections are saved!
+                    const updatedHistory = [...currentPatient.history];
+                    updatedHistory[updatedHistory.length - 1] = record;
+                    updateDoc(doc(db, "patients", currentPatient.id), { history: updatedHistory, diagnosis: provDiagnosis }).catch(e => console.log("Update queued"));
+                    currentPatient.history = updatedHistory;
                 }
 
                 const hasExamDataInternal = hasExamData(labs);
@@ -4317,7 +4280,9 @@
                 const rxWrapper = document.getElementById('printPrescriptionWrapper');
                 if (hasMeds) {
                     rxWrapper.style.display = 'block';
-                    const tbody = document.getElementById('printTableBody'); tbody.innerHTML = '';
+                    const tbody = document.getElementById('printTableBody'); 
+                    let printTableHtml = '';
+                    
                     drugs.forEach((d, i) => {
                         let mHtml, aHtml, nHtml;
                         if (d.type === 'SPRAY' || d.type === 'OINTMENT') {
@@ -4342,8 +4307,9 @@
                             medNameDisplay = `${d.type} ${d.name}`;
                         }
 
-                        tbody.innerHTML += `<tr><td>${i + 1}</td><td class="drug-name-cell">${medNameDisplay}${strHtml}</td>${mHtml}${aHtml}${nHtml}${tHtml}</tr>`;
+                        printTableHtml += `<tr><td>${i + 1}</td><td class="drug-name-cell">${medNameDisplay}${strHtml}</td>${mHtml}${aHtml}${nHtml}${tHtml}</tr>`;
                     });
+                    tbody.innerHTML = printTableHtml;
                 } else {
                     rxWrapper.style.display = 'none';
                 }
@@ -4558,7 +4524,6 @@
                 <div class="col-action"><button class="btn btn-red btn-sm" onclick="document.getElementById('row-${rowCount}').remove()">X</button></div>
             `;
             container.appendChild(div); attachMicListeners(`name-${rowCount}`);
-            applySettings();
         }
 
         function calculateTotal(rid) {
@@ -4745,9 +4710,10 @@
         window.deleteTemplate = async (id) => { if (confirm("Delete?")) await deleteDoc(doc(db, "clinicalTemplates", id)); };
 
         function renderTemplateManagerList() {
-            const div = document.getElementById('templateListContainer'); div.innerHTML = '';
+            const div = document.getElementById('templateListContainer'); 
+            let htmlContent = '';
             clinicalTemplates.forEach(t => {
-                div.innerHTML += `<div style="display:flex;justify-content:space-between;padding:8px 5px; border-bottom:1px solid #eee; align-items:center;">
+                htmlContent += `<div style="display:flex;justify-content:space-between;padding:8px 5px; border-bottom:1px solid #eee; align-items:center;">
                     <span style="font-weight:bold;">${t.name}</span>
                     <div style="display:flex; gap:5px;">
                         <button class="btn btn-secondary btn-sm" onclick="editTemplate('${t.id}', 'clinical')">Edit</button>
@@ -4755,6 +4721,7 @@
                     </div>
                 </div>`;
             });
+            div.innerHTML = htmlContent;
         }
 
         window.openDiagTemplateManager = () => { resetDiagTemplateForm(); document.getElementById('diagTemplateManagerModal').style.display = 'flex'; };
@@ -4776,9 +4743,10 @@
         window.deleteDiagTemplate = async (id) => { if (confirm("Delete?")) await deleteDoc(doc(db, "diagnosisTemplates", id)); };
 
         function renderDiagTemplateManagerList() {
-            const div = document.getElementById('diagTemplateListContainer'); div.innerHTML = '';
+            const div = document.getElementById('diagTemplateListContainer'); 
+            let htmlContent = '';
             diagTemplates.forEach(t => {
-                div.innerHTML += `<div style="display:flex;justify-content:space-between;padding:8px 5px; border-bottom:1px solid #eee; align-items:center;">
+                htmlContent += `<div style="display:flex;justify-content:space-between;padding:8px 5px; border-bottom:1px solid #eee; align-items:center;">
                     <span style="font-weight:bold;">${t.name}</span>
                     <div style="display:flex; gap:5px;">
                         <button class="btn btn-secondary btn-sm" onclick="editTemplate('${t.id}', 'diag')">Edit</button>
@@ -4786,6 +4754,7 @@
                     </div>
                 </div>`;
             });
+            div.innerHTML = htmlContent;
         }
 
         window.closeModal = (id) => {
