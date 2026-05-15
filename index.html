@@ -1353,6 +1353,34 @@
         </div>
     </div>
 
+    <div id="letterModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h4 class="modal-title">Draft Reference Letter</h4>
+                <button class="btn btn-red btn-sm" onclick="closeModal('letterModal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>To: (Doctor/Hospital Name)</label>
+                    <input type="text" id="letterDocName" placeholder="e.g. Dr. Rajesh Kumar">
+                </div>
+                <div class="form-group">
+                    <label>Address / Department</label>
+                    <textarea id="letterAddress" rows="2" class="auto-expand" placeholder="e.g. Dept of Cardiology, City Hospital"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Subject (Diagnosis / Test Name)</label>
+                    <input type="text" id="letterSubject" placeholder="e.g. MRI Brain screening">
+                </div>
+                <div class="form-group">
+                    <label>Body / Remarks (Optional)</label>
+                    <textarea id="letterBody" rows="3" class="auto-expand" placeholder="e.g. Kindly evaluate and manage..."></textarea>
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="printLetter()">🖨️ Generate & Print Letter</button>
+            </div>
+        </div>
+    </div>
+
     <div id="editPatientModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
@@ -1871,13 +1899,15 @@
                                     <h2 id="pNameDisplay" style="margin:0;">-</h2><small id="pDetailsDisplay"
                                         style="color:#6b7280;">-</small>
                                 </div>
-                                <div style="display:flex; gap:20px; align-items:center; margin-right: 180px;">
+                                <div style="display:flex; gap:15px; align-items:center; margin-right: 20px;">
                                     <button id="btnTopClearForm" class="btn btn-secondary btn-sm"
                                         onclick="clearWorkspace()" title="Clear Form & Draft">Clear Form</button>
                                     <button id="btnTopClearQueue" class="btn btn-red btn-sm"
                                         onclick="finishConsultation()">Clear from Queue</button>
                                     <button id="btnToggleHistory" class="btn btn-secondary btn-sm"
                                         onclick="toggleHistory()">History</button>
+                                    <button id="btnOpenLetter" class="btn btn-blue btn-sm"
+                                        onclick="openLetterModal()">📝 Letter</button>
                                 </div>
                             </div>
 
@@ -2129,6 +2159,8 @@
     <div class="print-only print-container">
 
         <div id="printAnalyticsContainer" style="display:none; font-family: 'Inter', sans-serif;"></div>
+        
+        <div id="printLetterContainer" style="display:none; font-family: 'Times New Roman', serif;"></div>
 
         <div id="printDocument" class="print-page">
 
@@ -2685,6 +2717,94 @@
             closeModal('settingsModal');
             document.getElementById('analyticsModal').style.display = 'flex';
             setAnalyticsMode('day'); // Defaults to Today's date
+        };
+
+        window.openLetterModal = () => {
+            if (!currentPatient) {
+                showToast("Please select a patient first", "error");
+                return;
+            }
+            // Auto-fill subject with provisional diagnosis if available
+            const provDiag = document.getElementById('provDiagnosis').value.trim() || currentPatient.diagnosis || '';
+            document.getElementById('letterSubject').value = provDiag;
+            document.getElementById('letterDocName').value = '';
+            document.getElementById('letterAddress').value = '';
+            document.getElementById('letterBody').value = 'Kindly evaluate and manage the above mentioned patient.';
+            
+            document.getElementById('letterModal').style.display = 'flex';
+        };
+
+        window.printLetter = () => {
+            const docName = document.getElementById('letterDocName').value.trim();
+            const address = document.getElementById('letterAddress').value.trim();
+            const subject = document.getElementById('letterSubject').value.trim();
+            const body = document.getElementById('letterBody').value.trim();
+
+            if (!docName || !subject) {
+                showToast("Doctor Name and Subject are required", "error");
+                return;
+            }
+
+            const printContainer = document.getElementById('printLetterContainer');
+            const displayReg = currentPatient.regNo === 'OLD' ? 'OLD' : '#' + currentPatient.regNo;
+            const dateStr = new Date().toLocaleDateString('en-GB');
+
+            let html = `
+            <div class="print-header">
+                <div class="dr-info">
+                    <h1>DR. G.M. WALI <span class="print-degree">M.D. D.M.</span></h1>
+                    <p>CHIEF NEUROLOGIST</p>
+                    <p>K.M.C. 12671</p>
+                </div>
+                <div class="clinic-info-container">
+                    <img src="logo.png" alt="Logo" class="clinic-logo-img">
+                    <div class="clinic-info">
+                        <div class="clinic-name">NEURO SPECIALITIES CENTRE</div>
+                        <div class="clinic-details">3933, CLUB ROAD, BELGAUM-590 001<br>Ph.: 0831-2430625, E-mail: walidoc@hotmail.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; font-size: 16px; line-height: 1.5; color: #000;">
+                <div style="text-align: right; font-weight: bold; margin-bottom: 30px;">Date: ${dateStr}</div>
+                
+                <div style="font-weight: bold;">To,</div>
+                <div style="font-weight: bold; font-size: 18px;">${docName}</div>
+                <div style="white-space: pre-wrap;">${address}</div>
+                
+                <div style="margin-top: 40px; margin-bottom: 20px; text-align: center;">
+                    <span style="font-weight: bold; font-size: 18px; text-decoration: underline;">Subject: ${subject}</span>
+                </div>
+                
+                <div style="margin-bottom: 30px; padding: 10px; border: 1px solid #000;">
+                    <strong>Reference:</strong> Patient <strong>${currentPatient.name}</strong>, Age/Sex: ${currentPatient.age}Y / ${currentPatient.sex}, Reg No: ${displayReg}
+                </div>
+                
+                <div style="white-space: pre-wrap; min-height: 200px;">Respected Doctor,\n\n${body}</div>
+                
+                <div style="margin-top: 60px; display: flex; justify-content: flex-end;">
+                    <div style="text-align: right;">
+                        <div>Thanking You,</div>
+                        <div>Yours sincerely,</div>
+                        <div style="margin-top: 60px; font-weight: bold; font-size: 18px;">Dr. G.M. Wali</div>
+                        <div>M.D. D.M.</div>
+                    </div>
+                </div>
+            </div>`;
+
+            printContainer.innerHTML = html;
+
+            // Swap visibility so ONLY the letter prints
+            document.getElementById('printDocument').style.display = 'none';
+            document.getElementById('printAnalyticsContainer').style.display = 'none';
+            printContainer.style.display = 'block';
+
+            window.print();
+
+            // Revert back to normal prescription mode after printing
+            document.getElementById('printDocument').style.display = 'flex';
+            printContainer.style.display = 'none';
+            closeModal('letterModal');
         };
 
         window.setAnalyticsMode = (mode) => {
